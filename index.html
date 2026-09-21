@@ -2146,7 +2146,10 @@ document.getElementById('exportSetBtn').onclick=exportSet;
 /* ============================================================
    LIVE INSTRUMENTS — πιάνο / κιθάρα / μπάσο / synth / ντραμς
    ============================================================ */
-const instGain=AC.createGain(); instGain.gain.value=0.9; instGain.connect(master);
+const instGain=AC.createGain(); instGain.gain.value=0.9;
+const instComp=AC.createDynamicsCompressor(); // limiter: αποτρέπει clipping/παραμόρφωση από πολλές νότες μαζί
+instComp.threshold.value=-14; instComp.knee.value=8; instComp.ratio.value=4; instComp.attack.value=0.003; instComp.release.value=0.2;
+instGain.connect(instComp); instComp.connect(master);
 document.getElementById('instVol').oninput=e=>instGain.gain.value=parseFloat(e.target.value);
 let curInst='piano', guitarType='acoustic';
 
@@ -2157,23 +2160,24 @@ const gtTone=AC.createBiquadFilter(); gtTone.type='lowpass'; gtTone.frequency.va
 const gtDistGain=AC.createGain(); gtDistGain.gain.value=0.6;
 gtDist.connect(gtTone); gtTone.connect(gtDistGain); gtDistGain.connect(instGain);
 let guitarDist='clean';
-const DIST_PRESETS={ clean:null, overdrive:{k:18,tone:3200,lvl:0.7}, distortion:{k:55,tone:2600,lvl:0.55}, fuzz:{k:130,tone:2000,lvl:0.5} };
+const DIST_PRESETS={ clean:null, overdrive:{k:14,tone:3400,lvl:1.4}, distortion:{k:40,tone:2800,lvl:1.9}, fuzz:{k:90,tone:2300,lvl:2.6} };
 function setGuitarDist(name){ guitarDist=name; const p=DIST_PRESETS[name]; if(p){ gtDist.curve=makeDistCurve(p.k); gtTone.frequency.value=p.tone; gtDistGain.gain.value=p.lvl; } }
 
 /* ---- Karplus-Strong (ρεαλιστική τσιμπημένη χορδή για μπουζούκι/κιθάρα) ---- */
 function ksPluck(freq,t,dur,dest,bright){
   const period=1/freq;
   const delay=AC.createDelay(0.05); delay.delayTime.value=period;
-  const damp=AC.createBiquadFilter(); damp.type='lowpass'; damp.frequency.value=bright||3500;
-  const fb=AC.createGain(); fb.gain.value=0.986;
-  const out=AC.createGain(); out.gain.value=0.9;
-  delay.connect(damp); damp.connect(fb); fb.connect(delay); delay.connect(out); out.connect(dest||instGain);
-  const len=Math.max(2,Math.floor(AC.sampleRate*period*2));
+  const damp=AC.createBiquadFilter(); damp.type='lowpass'; damp.frequency.value=bright||3000;
+  const fb=AC.createGain(); fb.gain.value=0.972;               // πιο ήπια ανάδραση (χωρίς buzz)
+  const soft=AC.createBiquadFilter(); soft.type='lowpass'; soft.frequency.value=4500; // λείανση εξόδου
+  const out=AC.createGain(); out.gain.value=0.3;               // χαμηλή στάθμη (χωρίς clipping)
+  delay.connect(damp); damp.connect(fb); fb.connect(delay); delay.connect(soft); soft.connect(out); out.connect(dest||instGain);
+  const len=Math.max(2,Math.floor(AC.sampleRate*period));       // ~1 περίοδος → καθαρός φθόγγος
   const buf=AC.createBuffer(1,len,AC.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
-  const nb=AC.createBufferSource(); nb.buffer=buf; const ng=AC.createGain(); ng.gain.value=0.6; nb.connect(ng); ng.connect(delay); nb.start(t); nb.stop(t+period*2+0.02);
-  out.gain.setValueAtTime(0.9,t); out.gain.exponentialRampToValueAtTime(0.0008,t+dur);
-  fb.gain.setValueAtTime(0.986,t+dur*0.7); fb.gain.linearRampToValueAtTime(0,t+dur);
-  setTimeout(()=>{ try{delay.disconnect();damp.disconnect();fb.disconnect();out.disconnect();ng.disconnect();}catch(e){} }, (dur+0.4)*1000);
+  const nb=AC.createBufferSource(); nb.buffer=buf; const ng=AC.createGain(); ng.gain.value=0.3; nb.connect(ng); ng.connect(delay); nb.start(t); nb.stop(t+period+0.02);
+  out.gain.setValueAtTime(0.3,t); out.gain.exponentialRampToValueAtTime(0.0006,t+dur);
+  fb.gain.setValueAtTime(0.972,t+dur*0.6); fb.gain.linearRampToValueAtTime(0,t+dur);
+  setTimeout(()=>{ try{delay.disconnect();damp.disconnect();fb.disconnect();soft.disconnect();out.disconnect();ng.disconnect();}catch(e){} }, (dur+0.4)*1000);
 }
 function midiFreq(m){ return 440*Math.pow(2,(m-69)/12); }
 function playNote(freq, inst){
@@ -2193,7 +2197,7 @@ function playNote(freq, inst){
     const GT={ classical:{w1:'triangle',w2:'sine',lp0:2400,lp1:1400,dec:1.3,det:1.002,q:0.5},
                acoustic:{w1:'sawtooth',w2:'triangle',lp0:4200,lp1:1100,dec:1.35,det:1.004,q:0.6},
                electroacoustic:{w1:'sawtooth',w2:'triangle',lp0:4800,lp1:1500,dec:1.5,det:1.004,q:1.2},
-               electric:{w1:'sawtooth',w2:'sawtooth',lp0:2800,lp1:1800,dec:1.8,det:1.008,q:5} }[guitarType]||{w1:'sawtooth',w2:'triangle',lp0:4000,lp1:1100,dec:1.3,det:1.004,q:0.6};
+               electric:{w1:'sawtooth',w2:'sawtooth',lp0:3200,lp1:1600,dec:1.7,det:1.006,q:1.2} }[guitarType]||{w1:'sawtooth',w2:'triangle',lp0:4000,lp1:1100,dec:1.3,det:1.004,q:0.6};
     flt.type='lowpass'; flt.Q.value=GT.q; flt.frequency.setValueAtTime(GT.lp0,t); flt.frequency.exponentialRampToValueAtTime(GT.lp1,t+.6);
     const o1=AC.createOscillator(); o1.type=GT.w1; o1.frequency.value=freq;
     const o2=AC.createOscillator(); o2.type=GT.w2; o2.frequency.value=freq*GT.det;
@@ -2225,8 +2229,8 @@ function playNote(freq, inst){
     g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.45,t+.12); g.gain.setValueAtTime(.45,t+.85); g.gain.exponentialRampToValueAtTime(.0008,t+1.5);
     o1.start(t);o2.start(t);o1.stop(t+1.6);o2.stop(t+1.6);lfo.stop(t+1.6);
   } else if(inst==='bouzouki'){ // μπουζούκι: τσιμπημένη ΔΙΠΛΗ χορδή (Karplus-Strong) — ρεαλιστικό μεταλλικό
-    ksPluck(freq, t, 1.1, instGain, 6000);
-    ksPluck(freq*1.005, t+0.007, 1.1, instGain, 5500); // δεύτερη χορδή (course) → shimmer/χορωδία
+    ksPluck(freq, t, 1.0, instGain, 3200);
+    ksPluck(freq*1.004, t+0.008, 1.0, instGain, 2900); // δεύτερη χορδή (course) → shimmer/χορωδία
     return; // (δεν χρησιμοποιούμε το g)
   } else { // synth
     flt.type='lowpass'; flt.frequency.value=2600; flt.Q.value=6;
