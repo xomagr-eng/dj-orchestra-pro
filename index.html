@@ -1,0 +1,3087 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DJ ORCHESTRA PRO — Κονσόλα DJ & Ορχήστρα</title>
+<meta name="theme-color" content="#e01e2b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --bg:#0a0b0e; --panel:#14161c; --panel2:#1b1e26; --line:#2a2e3a;
+    --txt:#f2f4f8; --dim:#8b93a7; --accent:#e01e2b; --accent2:#ff3a47;
+    --a-deck:#e01e2b; --b-deck:#2b7de0; --ok:#37d67a; --warn:#f5a524;
+    --glow:0 0 14px rgba(224,30,43,.55);
+    --page-bg:radial-gradient(1200px 600px at 50% -10%,#191c24,#0a0b0e 60%);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    background:var(--page-bg); background-attachment:fixed;
+    color:var(--txt); font-family:"Segoe UI",Roboto,system-ui,sans-serif;
+    min-height:100vh; padding:14px; user-select:none; transition:background .3s;
+  }
+  h1,h2,h3{font-weight:700}
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:14px; flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{
+    width:46px;height:46px;border-radius:12px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--accent),#7a0d14);
+    display:grid;place-items:center;font-weight:900;font-size:20px;
+    box-shadow:var(--glow); letter-spacing:-1px;
+  }
+  .brand h1{font-size:22px;letter-spacing:.5px}
+  .brand small{color:var(--dim);font-size:12px;font-weight:500}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{
+    background:var(--panel2); color:var(--txt); border:1px solid var(--line);
+    padding:9px 14px; border-radius:9px; cursor:pointer; font-size:13px;
+    font-weight:600; transition:.15s; display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn:hover{border-color:var(--accent);color:#fff}
+  .btn.active{background:var(--accent);border-color:var(--accent);box-shadow:var(--glow)}
+  .btn.rec.active{animation:pulse 1s infinite}
+  @keyframes pulse{50%{box-shadow:0 0 22px rgba(224,30,43,.9)}}
+
+  /* Appearance bar */
+  .appearance{display:flex;flex-wrap:wrap;gap:16px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+  .app-grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .app-lbl{font-size:12px;font-weight:700;color:var(--dim)}
+  .chip{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--accent)}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--glow)}
+  .swatch{width:26px;height:26px;border-radius:7px;border:2px solid var(--line);cursor:pointer;transition:.15s;padding:0}
+  .swatch:hover{transform:scale(1.12)}
+  .swatch.active{border-color:#fff;box-shadow:var(--glow)}
+  .col-swatch{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);cursor:pointer;transition:.15s}
+  .col-swatch:hover{transform:scale(1.15)}
+  .col-swatch.active{border-color:#fff;box-shadow:var(--glow)}
+  #customColor{width:30px;height:30px;border:none;background:none;cursor:pointer;padding:0;border-radius:6px}
+  .grad-swatches,.color-swatches{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .sel{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;
+    padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;outline:none}
+  .sel:hover{border-color:var(--accent)}
+
+  /* TABS */
+  .tabbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;border-bottom:2px solid var(--line);padding-bottom:0}
+  .tab{background:transparent;border:1px solid transparent;border-bottom:none;color:var(--dim);
+    padding:11px 18px;border-radius:10px 10px 0 0;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;position:relative;top:2px}
+  .tab:hover{color:var(--txt);background:var(--panel)}
+  .tab.active{color:#fff;background:var(--panel);border-color:var(--line);border-bottom:2px solid var(--accent);box-shadow:0 -2px 10px rgba(224,30,43,.2)}
+  .tabpage{display:none}
+  .tabpage.active{display:block;animation:fadein .2s}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+
+  /* BAND MACHINE */
+  .band-controls{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  @media(max-width:760px){.band-controls{grid-template-columns:1fr 1fr}}
+  .band-grp{display:flex;flex-direction:column;gap:5px}
+  .band-grp label{font-size:10px;color:var(--dim);font-weight:700;letter-spacing:.5px}
+  .band-grp .sel{width:100%}
+  .band-bpm{display:flex;align-items:center;gap:8px}
+  .band-bpm b{font-size:14px;font-variant-numeric:tabular-nums;min-width:34px}
+  .band-steps{display:grid;grid-template-columns:repeat(16,1fr);gap:4px;margin-bottom:14px}
+  .step-led{height:14px;border-radius:3px;background:#0e1015;border:1px solid var(--line);transition:.05s}
+  .step-led.beat{border-color:#3a4152}
+  .step-led.on{background:var(--accent);box-shadow:var(--glow)}
+  .band-layers{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:6px}
+  @media(max-width:760px){.band-layers{grid-template-columns:1fr 1fr}}
+  .layer{display:flex;flex-direction:column;gap:6px;background:#0e1015;border:1px solid var(--line);border-radius:10px;padding:10px}
+  .layer-toggle{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:8px;
+    padding:8px;font-weight:700;font-size:12px;cursor:pointer;transition:.12s}
+  .layer-toggle.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--glow)}
+  .now-chord{font-size:12px;color:var(--dim);text-align:center;padding-top:6px}
+  .now-chord b{color:var(--txt);font-size:15px}
+
+  /* tab audio dot */
+  .tab .dot{display:none;width:8px;height:8px;border-radius:50%;background:var(--accent);
+    margin-left:7px;vertical-align:middle;box-shadow:0 0 6px var(--accent)}
+  .tab.audio .dot{display:inline-block;animation:pulse 1s infinite}
+
+  /* PATTERN EDITOR + SONG MODE */
+  .pattern-editor{margin-top:14px;background:#0e1015;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .pe-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;font-weight:800;color:var(--accent2)}
+  .pe-head span{color:var(--dim);font-weight:500;font-size:11px}
+  .pe-tools{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .pe-row{display:grid;grid-template-columns:64px repeat(16,1fr);gap:3px;align-items:center;margin-bottom:3px}
+  .pe-row .pe-lbl{font-size:10px;font-weight:700;color:var(--dim)}
+  .pe-cell{height:20px;border-radius:4px;background:#181b22;border:1px solid #23283400;cursor:pointer;transition:.08s}
+  .pe-cell.beat{background:#1e222b}
+  .pe-cell.on{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+  .pe-cell.play{outline:2px solid #fff}
+  .song-bars{font-size:11px;color:var(--dim);font-weight:700;display:flex;align-items:center;gap:5px}
+  .song-bars input{width:52px;background:#07080b;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12px}
+  .song-add{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .song-seq{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:34px;background:#07080b;border:1px solid var(--line);border-radius:8px;padding:8px}
+  .song-empty{color:var(--dim);font-size:12px}
+  .song-chip{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:16px;padding:5px 10px;font-size:12px;font-weight:700}
+  .song-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--glow)}
+  .song-chip small{color:var(--dim);font-weight:500}
+  .song-chip.active small{color:#ffd}
+  .song-chip .x{cursor:pointer;color:var(--dim);font-weight:900}
+  .song-chip .x:hover{color:var(--accent2)}
+  .band-extra{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;
+    background:#0e1015;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .be-grp{display:flex;flex-direction:column;gap:5px}
+  .be-grp label{font-size:10px;color:var(--dim);font-weight:700;letter-spacing:.5px}
+  .be-grp .band-bpm{width:180px}
+
+  /* VISUALIZER */
+  .viz-panel{background:linear-gradient(180deg,var(--panel),#07080b);border:1px solid var(--line);
+    border-radius:16px;padding:12px;margin-bottom:12px}
+  .viz-head{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:1px;color:var(--txt);margin-bottom:8px}
+  .viz-head span{color:var(--accent2);font-weight:700;letter-spacing:.5px}
+  #viz{display:block;width:100%;height:150px;border-radius:10px;background:#05060a;border:1px solid var(--line)}
+  .eq-bands{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;align-items:end}
+  .eq-band{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .eq-band input[type=range].vert{height:110px}
+  .eq-band .eq-f{font-size:10px;color:var(--dim);font-weight:700}
+  .eq-band .eq-g{font-size:10px;color:var(--txt);font-variant-numeric:tabular-nums}
+  .eqp{padding:6px 10px;font-size:12px}
+  .smart-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:linear-gradient(180deg,var(--panel),#0e1015);
+    border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:12px}
+  .smart-lbl{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--accent2);margin-right:4px}
+  .smart-bar .btn.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--glow)}
+
+  /* KARAOKE */
+  .karaoke{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .k-tools{display:flex;gap:6px;flex-wrap:wrap}
+  .k-input{width:100%;height:80px;background:#07080b;color:var(--txt);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;font-size:13px;resize:vertical;outline:none;margin-bottom:10px;font-family:inherit}
+  .k-input:focus{border-color:var(--accent)}
+  .k-display{background:radial-gradient(circle at 50% 0%,#14161c,#07080b);border:1px solid var(--line);
+    border-radius:12px;height:220px;overflow:hidden;position:relative;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;padding:16px}
+  .k-empty{color:var(--dim);font-size:14px}
+  .k-scroll{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;gap:12px;
+    align-items:center;padding:0 16px;transition:transform .35s ease}
+  .k-line{font-size:16px;color:var(--dim);text-align:center;transition:.25s;opacity:.5;line-height:1.5}
+  .k-line.cur{font-size:26px;font-weight:800;color:#fff;opacity:1;text-shadow:0 0 18px var(--accent)}
+  .k-line.near{opacity:.75;color:var(--txt)}
+
+  .rig{
+    display:grid; grid-template-columns:1fr 260px 1fr; gap:12px; align-items:start;
+  }
+  @media(max-width:1100px){ .rig{grid-template-columns:1fr; } .mixer{order:3} }
+
+  .deck{
+    background:linear-gradient(180deg,var(--panel),#101218);
+    border:1px solid var(--line); border-radius:16px; padding:14px;
+  }
+  .deck.A{border-top:3px solid var(--a-deck)}
+  .deck.B{border-top:3px solid var(--b-deck)}
+  .deck-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+  .deck-tag{font-size:14px;font-weight:800;letter-spacing:1px}
+  .A .deck-tag{color:var(--a-deck)} .B .deck-tag{color:var(--b-deck)}
+  .track-name{font-size:13px;color:var(--dim);text-align:right;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+
+  .load-row{display:flex;gap:8px;margin-bottom:12px}
+  .load-row .btn{flex:1;justify-content:center}
+
+  /* zoomed scrolling waveform */
+  .wave-zoom{position:relative;background:#07080b;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;height:92px;margin-bottom:6px}
+  .wave-zoom canvas{width:100%;height:100%}
+  .zoom-center{position:absolute;top:0;left:50%;width:2px;height:100%;margin-left:-1px;
+    background:#fff;opacity:.85;box-shadow:0 0 8px #fff;pointer-events:none}
+  .wave-zoom::before{content:"CLOSE-UP";position:absolute;top:4px;left:8px;font-size:9px;
+    color:var(--dim);font-weight:700;letter-spacing:1px;z-index:2;pointer-events:none}
+
+  /* waveform overview */
+  .wave-wrap{position:relative;background:#07080b;border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;height:120px;margin-bottom:6px;cursor:pointer}
+  .wave-wrap.ovw{height:70px}
+  .wave-wrap.ovw::before{content:"OVERVIEW";position:absolute;top:4px;left:8px;font-size:9px;
+    color:var(--dim);font-weight:700;letter-spacing:1px;z-index:2;pointer-events:none}
+
+  /* pitch-bend + slip row */
+  .bend-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin-bottom:12px}
+  .bend-btn{padding:9px 0;border-radius:9px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--txt);font-weight:800;font-size:12px;cursor:pointer;transition:.12s;user-select:none}
+  .bend-btn:hover{border-color:var(--accent)}
+  .bend-btn:active,.bend-btn.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--glow)}
+  .slip-btn{padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--dim);font-weight:800;font-size:12px;cursor:pointer;transition:.12s;letter-spacing:1px}
+  .slip-btn:hover{border-color:var(--warn)}
+  .slip-btn.on{background:var(--warn);border-color:var(--warn);color:#241701}
+  canvas{display:block;width:100%;height:100%}
+  .playhead{position:absolute;top:0;left:50%;width:2px;height:100%;
+    background:var(--accent);box-shadow:0 0 8px var(--accent);pointer-events:none}
+  .time-row{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);
+    font-variant-numeric:tabular-nums;margin-bottom:10px}
+  .bpm-badge{font-weight:800;color:var(--txt)}
+  .A .bpm-badge b{color:var(--a-deck)} .B .bpm-badge b{color:var(--b-deck)}
+
+  /* TURNTABLE (πικάπ) */
+  .turntable{position:relative;width:230px;height:230px;margin:6px auto 14px}
+  .platter{position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 45%,#2b2f3a,#0e0f13 72%);
+    border:3px solid #0a0b0e;box-shadow:0 8px 24px #000,inset 0 0 30px #000, var(--glow);
+    display:grid;place-items:center}
+  .vinyl{width:198px;height:198px;border-radius:50%;position:relative;cursor:grab;
+    background:
+      repeating-radial-gradient(circle at 50% 50%, #111318 0 1px, #05060a 1px 3px);
+    box-shadow:inset 0 0 40px #000, 0 0 0 6px #0b0c10;transition:none}
+  .vinyl:active{cursor:grabbing}
+  .vinyl .shine{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+    background:conic-gradient(from 0deg, rgba(255,255,255,.10), rgba(255,255,255,0) 25%, rgba(255,255,255,.07) 50%, rgba(255,255,255,0) 75%, rgba(255,255,255,.10))}
+  .vinyl .label{position:absolute;top:50%;left:50%;width:78px;height:78px;margin:-39px 0 0 -39px;
+    border-radius:50%;background:radial-gradient(circle at 50% 40%,var(--accent2),var(--accent) 70%);
+    display:grid;place-items:center;box-shadow:0 0 0 4px #0a0b0e, inset 0 0 12px rgba(0,0,0,.4)}
+  .A .vinyl .label{background:radial-gradient(circle at 50% 40%,var(--a-deck),#7a0d14 75%)}
+  .B .vinyl .label{background:radial-gradient(circle at 50% 40%,var(--b-deck),#0d3a7a 75%)}
+  .vinyl .label span{font-weight:900;font-size:26px;color:#fff;letter-spacing:-1px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .vinyl .label::after{content:"";position:absolute;width:8px;height:8px;border-radius:50%;
+    background:#0a0b0e;box-shadow:inset 0 0 3px #000}
+  .vinyl .strobe{position:absolute;top:3px;left:50%;width:6px;height:16px;margin-left:-3px;
+    background:rgba(255,255,255,.55);border-radius:2px}
+  .tonearm{position:absolute;top:-2px;right:-6px;width:96px;height:120px;pointer-events:none;
+    transform-origin:82px 16px;transform:rotate(-30deg);transition:transform .5s ease}
+  .turntable.playing .tonearm{transform:rotate(-14deg)}
+  .tonearm .pivot{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#3a3f4d,#14161c);border:1px solid #000;box-shadow:0 2px 5px #000}
+  .tonearm .arm{position:absolute;top:14px;right:15px;width:6px;height:98px;
+    background:linear-gradient(90deg,#6a7080,#c7ccd8,#6a7080);border-radius:3px;
+    transform-origin:top center;transform:rotate(24deg);box-shadow:0 2px 4px rgba(0,0,0,.5)}
+  .tonearm .arm::after{content:"";position:absolute;bottom:-6px;left:-3px;width:12px;height:16px;
+    background:#1b1e26;border:1px solid #000;border-radius:2px}
+  .rpm-tag{position:absolute;bottom:8px;left:8px;font-size:10px;font-weight:800;color:var(--dim);
+    background:#0a0b0e;border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+
+  .transport{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .tbtn{padding:12px 0;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-weight:800;font-size:14px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;transition:.15s}
+  .tbtn small{font-size:9px;color:var(--dim);font-weight:600}
+  .tbtn:hover{border-color:var(--accent)}
+  .tbtn.play.on{background:var(--ok);border-color:var(--ok);color:#04220f}
+  .tbtn.cue{color:var(--warn)}
+
+  .pitch-row{display:flex;gap:12px;align-items:stretch;margin-bottom:8px}
+  .pitch-box{flex:1;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:10px}
+  .pitch-box label{font-size:10px;color:var(--dim);font-weight:700;letter-spacing:.5px}
+  .pitch-box .val{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+  input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer}
+  input[type=range].vert{writing-mode:vertical-lr;direction:rtl;width:24px;height:130px}
+  input[type=range].h{width:100%}
+  input[type=range]::-webkit-slider-runnable-track{
+    background:linear-gradient(90deg,var(--accent),#5a0a10);height:6px;border-radius:4px}
+  input[type=range].vert::-webkit-slider-runnable-track{
+    background:linear-gradient(0deg,var(--accent),#5a0a10);width:6px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+    border-radius:50%;background:#f2f4f8;margin-top:-8px;border:2px solid var(--accent);
+    box-shadow:0 2px 6px #000}
+  input[type=range].vert::-webkit-slider-thumb{margin-top:0;margin-left:-8px}
+
+  .cues{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+  .cue-pad{padding:12px 0;border-radius:8px;border:1px solid var(--line);background:#0e1015;
+    color:var(--dim);font-weight:800;font-size:12px;cursor:pointer;text-align:center;transition:.12s}
+  .cue-pad.set{background:linear-gradient(180deg,#3a1114,#1b0708);color:#fff;border-color:var(--accent)}
+  .cue-pad.set.A{border-color:var(--a-deck)}
+  .cue-pad:hover{border-color:var(--accent)}
+
+  .loops{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .loop-pad{padding:9px 0;border-radius:8px;border:1px solid var(--line);background:#0e1015;
+    color:var(--txt);font-weight:700;font-size:12px;cursor:pointer;text-align:center;transition:.12s}
+  .loop-pad.on{background:var(--warn);color:#241701;border-color:var(--warn)}
+  .loop-pad:hover{border-color:var(--warn)}
+
+  /* FX rack */
+  .fx-rack{margin-top:10px;background:#0e1015;border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:10px;align-items:center}
+  .fx-title{font-size:11px;font-weight:800;color:var(--accent2);letter-spacing:1px}
+  .fx-knob{display:flex;flex-direction:column;gap:3px}
+  .fx-knob label{font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.5px}
+
+  /* harmony badge */
+  .harmony-badge{font-size:12px;font-weight:700;padding:6px 10px;border-radius:8px}
+  .harmony-badge.ok{background:rgba(55,214,122,.15);border:1px solid var(--ok);color:var(--ok)}
+  .harmony-badge.bad{background:rgba(245,165,36,.12);border:1px solid var(--warn);color:var(--warn)}
+
+  /* MIXER */
+  .mixer{background:linear-gradient(180deg,var(--panel),#0e1015);border:1px solid var(--line);
+    border-radius:16px;padding:14px}
+  .mixer h3{text-align:center;font-size:12px;color:var(--dim);letter-spacing:1px;margin-bottom:12px}
+  .eq-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .eq-col{text-align:center}
+  .eq-col .ch{font-size:12px;font-weight:800;margin-bottom:8px}
+  .eq-col.A .ch{color:var(--a-deck)} .eq-col.B .ch{color:var(--b-deck)}
+  .knob-row{display:flex;flex-direction:column;gap:10px;align-items:center;margin-bottom:10px}
+  .knob{width:100%;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .knob label{font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.5px}
+  .knob input{width:100%}
+  .vu{position:relative;height:8px;background:#07080b;border-radius:4px;overflow:hidden;margin:4px 0;border:1px solid var(--line)}
+  .vu i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ok),var(--warn) 70%,var(--accent));transition:width .05s}
+  .vu .ndl{display:none}
+
+  /* ===== ANALOG console skin ===== */
+  body[data-console="analog"] .mixer{
+    background:
+      repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
+      linear-gradient(180deg,#2a2620,#171410);
+    border-color:#4a4238;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 6px 18px #000}
+  body[data-console="analog"] .mixer h3{color:#d8c9a8}
+  body[data-console="analog"] .eq-col .ch{color:#e8dcc0}
+  body[data-console="analog"] input[type=range].h::-webkit-slider-runnable-track,
+  body[data-console="analog"] input[type=range].vert::-webkit-slider-runnable-track{
+    background:linear-gradient(90deg,#5a4a2e,#2a2016)}
+  body[data-console="analog"] input[type=range]::-webkit-slider-thumb{
+    background:radial-gradient(circle at 40% 35%,#f5edda,#b7a37a);border:2px solid #6b5a3a;
+    border-radius:5px;width:18px;height:26px;margin-top:-10px;box-shadow:0 2px 5px #000}
+  body[data-console="analog"] input[type=range].vert::-webkit-slider-thumb{width:26px;height:18px;margin-left:-10px;margin-top:0}
+  /* analog VU = needle meter */
+  body[data-console="analog"] .vu{height:46px;border-radius:6px;overflow:visible;
+    background:radial-gradient(circle at 50% 100%,#f3e6c4,#cdb98c);border:1px solid #6b5a3a}
+  body[data-console="analog"] .vu i{display:none}
+  body[data-console="analog"] .vu .ndl{display:block;position:absolute;bottom:4px;left:50%;width:2px;height:38px;
+    background:#8a1a12;transform-origin:bottom center;transform:rotate(-52deg);box-shadow:0 0 3px rgba(0,0,0,.4)}
+  body[data-console="analog"] .vu::before{content:"";position:absolute;bottom:3px;left:50%;width:8px;height:8px;
+    margin-left:-4px;border-radius:50%;background:#3a2f1a;z-index:2}
+  body[data-console="analog"] .vu::after{content:"VU";position:absolute;top:4px;left:6px;font-size:8px;font-weight:800;color:#5a4a2e}
+  .faders{display:flex;justify-content:space-around;align-items:end;margin:14px 0}
+  .fader{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .fader span{font-size:10px;color:var(--dim);font-weight:700}
+  .xf{margin-top:12px;text-align:center}
+  .xf label{font-size:10px;color:var(--dim);font-weight:700;letter-spacing:1px}
+  .xf-track{display:flex;justify-content:space-between;font-size:11px;font-weight:800;margin-top:6px}
+  .master-row{display:flex;gap:8px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .master-row .knob{flex:1}
+
+  /* SAMPLER */
+  .sampler{background:linear-gradient(180deg,var(--panel),#0e1015);border:1px solid var(--line);
+    border-radius:16px;padding:14px;margin-top:12px}
+  .sec-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+  .sec-title h3{font-size:13px;letter-spacing:1px;color:var(--txt)}
+  .sec-title h3 span{color:var(--dim);font-weight:500;font-size:11px;margin-left:6px}
+  .sampler-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+  @media(max-width:760px){.sampler-grid{grid-template-columns:repeat(4,1fr)}}
+  .spad{padding:16px 6px;border-radius:10px;border:1px solid var(--line);
+    background:radial-gradient(circle at 50% 30%,#22262f,#0c0d11);color:var(--txt);
+    font-weight:700;font-size:12px;cursor:pointer;text-align:center;transition:.1s;position:relative}
+  .spad:hover{border-color:var(--accent)}
+  .spad:active,.spad.hit{background:var(--accent);border-color:var(--accent);box-shadow:var(--glow);transform:scale(.96)}
+  .spad .emo{display:block;font-size:22px;margin-bottom:4px}
+
+  /* LIVE INSTRUMENTS */
+  .piano{position:relative;display:flex;flex-wrap:wrap;gap:2px;user-select:none;padding-bottom:4px}
+  .pkey{position:relative;flex:0 0 40px;width:40px;height:120px;border-radius:0 0 6px 6px;cursor:pointer;
+    background:linear-gradient(180deg,#f7f9fc,#dfe4ec);border:1px solid #b7bdc9;box-shadow:inset 0 -6px 8px rgba(0,0,0,.12);
+    display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:8px;color:#5a6172;font-weight:700}
+  .pkey.black{position:absolute;top:0;right:-14px;width:26px;height:74px;flex:none;z-index:3;
+    background:linear-gradient(180deg,#3a3f4d,#0c0d11);border:1px solid #000;border-radius:0 0 5px 5px;color:#9aa2b5;
+    align-items:flex-end;justify-content:center;display:flex;padding-bottom:4px;font-size:7px}
+  .pkey:active,.pkey.hit{background:linear-gradient(180deg,var(--accent2),var(--accent));color:#fff}
+  .pkey.black:active,.pkey.black.hit{background:linear-gradient(180deg,var(--accent),#5a0a10)}
+  .drum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  @media(max-width:760px){.drum-grid{grid-template-columns:repeat(2,1fr)}}
+  .drum-pad{padding:22px 6px;border-radius:12px;border:1px solid var(--line);cursor:pointer;text-align:center;
+    background:radial-gradient(circle at 50% 30%,#22262f,#0c0d11);color:var(--txt);font-weight:800;font-size:13px;transition:.1s}
+  .drum-pad:hover{border-color:var(--accent)}
+  .drum-pad:active,.drum-pad.hit{background:var(--accent);border-color:var(--accent);box-shadow:var(--glow);transform:scale(.97)}
+  .drum-pad .emo{display:block;font-size:26px;margin-bottom:5px}
+  .drumkit{display:block;width:100%;max-width:560px;height:auto;margin:0 auto}
+  .dpart{cursor:pointer;transition:filter .1s,transform .1s;transform-origin:center}
+  .dpart:hover{filter:brightness(1.15)}
+  .dpart.hit{filter:brightness(1.7) drop-shadow(0 0 8px var(--accent))}
+  .dlbl{fill:#0a0b0e;font-size:11px;font-weight:800;text-anchor:middle;pointer-events:none;font-family:inherit}
+  .drum-extra{display:flex;gap:8px;justify-content:center;margin-top:10px}
+  .kbd-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .kbd-row .btn.active,#kbdToggle.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--glow)}
+  .oct-ctl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);font-weight:700}
+  .oct-ctl b{min-width:18px;text-align:center;color:var(--txt)}
+  .oct-ctl .btn{padding:5px 11px}
+  .kbd-hint{font-size:11px;color:var(--dim)}
+  .pkey.kbd::after{content:attr(data-kbd);position:absolute;bottom:20px;left:0;right:0;text-align:center;font-size:8px;color:var(--accent);font-weight:800}
+  /* FRETBOARD (κιθάρα/μπάσο) */
+  .fretwrap{background:linear-gradient(180deg,#2a1d10,#170f07);border:1px solid #3d2a15;border-radius:12px;padding:12px}
+  .fret-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .fret-head .chord-btns{display:flex;gap:6px;flex-wrap:wrap}
+  .chord-btn{background:#3a2a18;border:1px solid #5a4020;color:#f3e9d8;border-radius:8px;padding:8px 12px;font-weight:800;font-size:13px;cursor:pointer;transition:.12s}
+  .chord-btn:hover{border-color:var(--accent);color:#fff}
+  .chord-btn:active{background:var(--accent);border-color:var(--accent)}
+  .fretboard{display:flex;flex-direction:column;gap:0;background:linear-gradient(180deg,#5a4326,#3e2d16);border-radius:6px;padding:6px 0;overflow-x:auto}
+  .fret-row{display:grid;grid-template-columns:56px repeat(6,minmax(48px,1fr));align-items:center;position:relative;height:36px}
+  .fret-open{font-size:11px;font-weight:800;color:#ffe;text-align:center;background:#241a0e;height:100%;display:flex;align-items:center;justify-content:center;border-right:3px solid #d9c9a0}
+  .fret-row::after{content:"";position:absolute;left:56px;right:0;top:50%;height:2px;background:linear-gradient(90deg,#cfc0a0,#9a8a63);opacity:.7;pointer-events:none}
+  .fret-cell{position:relative;height:100%;border-right:2px solid #7a6238;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+  .fret-cell:hover{background:rgba(255,255,255,.08)}
+  .fret-cell.hit .fdot{transform:scale(1.35);background:var(--accent2)}
+  .fret-cell .fdot{width:26px;height:26px;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-weight:800;color:#fff;transition:.1s}
+  .fret-cell:hover .fdot{background:var(--accent)}
+  .fret-nums{display:grid;grid-template-columns:56px repeat(6,minmax(48px,1fr));margin-top:4px}
+  .fret-nums span{text-align:center;font-size:10px;color:#c9b890;font-weight:700}
+  .fret-marker{position:absolute;width:8px;height:8px;border-radius:50%;background:#e8dcc0;left:50%;top:50%;transform:translate(-50%,-50%);opacity:.5}
+  /* σώμα κιθάρας/μπάσου με χορδές (strum) */
+  .strum-body{position:relative;margin:10px 0;padding:16px 20px;border-radius:14px;
+    background:linear-gradient(180deg,#161a22,#0c0d11);border:1px solid #2a2e3a;
+    display:flex;flex-direction:column;gap:0;justify-content:space-between;min-height:150px;cursor:pointer;overflow:hidden;touch-action:none}
+  .body-bg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+  /* clarinet + toumbeleki */
+  .clarinet,.toumbeleki{background:linear-gradient(180deg,#161a22,#0c0d11);border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto;text-align:center}
+  .clar-svg{display:block;width:100%;max-width:720px;height:auto;margin:0 auto}
+  .chole{cursor:pointer;transition:.1s}
+  .chole:hover{fill:#e8ecf3}
+  .chole.hit{fill:var(--accent)}
+  .toumb-svg{display:block;width:100%;max-width:320px;height:auto;margin:0 auto}
+  .tzone{cursor:pointer;transition:.1s}
+  .tzone:hover{filter:brightness(1.2)}
+  .tzone.hit{filter:brightness(1.7) drop-shadow(0 0 8px var(--accent))}
+  .tlbl{fill:#fff;font-size:13px;font-weight:800;text-anchor:middle;pointer-events:none}
+  .gstring{position:relative;height:16px;z-index:2}
+  .gstring::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+    background:linear-gradient(90deg,#cfc0a0,#efe6cc,#cfc0a0);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  .gstring:nth-child(2)::before,.gstring:nth-child(3)::before{height:3px}
+  .gstring:nth-child(4)::before,.gstring:nth-child(5)::before,.gstring:nth-child(6)::before,.gstring:nth-child(7)::before{height:4px;background:linear-gradient(90deg,#b58a4a,#e8c98a,#b58a4a)}
+  .gstring.pluck::before{animation:strumv .15s;box-shadow:0 0 8px var(--accent2)}
+  @keyframes strumv{0%,100%{transform:translateY(-50%)}25%{transform:translateY(-3px)}75%{transform:translateY(1px)}}
+  .strum-auto{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .auto-accomp{background:#0e1015;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+
+  /* LIBRARY */
+  .library{background:linear-gradient(180deg,var(--panel),#0e1015);border:1px solid var(--line);
+    border-radius:16px;padding:14px;margin-top:12px}
+  .lib-list{max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:#07080b}
+  .lib-list::-webkit-scrollbar{width:9px} .lib-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+  .lib-empty{padding:30px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
+  .lib-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #14161c;transition:.1s}
+  .lib-item:hover{background:#12141a}
+  .lib-item .ico{width:28px;height:28px;border-radius:6px;background:var(--panel2);display:grid;place-items:center;flex:0 0 auto;font-size:14px}
+  .lib-item .meta{flex:1;min-width:0}
+  .lib-item .t{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lib-item .s{font-size:11px;color:var(--dim)}
+  .lib-item .to{display:flex;gap:5px}
+  .lib-item .to button{width:34px;padding:6px 0;border-radius:7px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);font-weight:800;font-size:12px;cursor:pointer}
+  .lib-item .to button.a:hover{border-color:var(--a-deck);color:var(--a-deck)}
+  .lib-item .to button.b:hover{border-color:var(--b-deck);color:var(--b-deck)}
+  .lib-search{flex:1;min-width:140px;background:#07080b;border:1px solid var(--line);border-radius:8px;
+    padding:8px 12px;color:var(--txt);font-size:13px;outline:none}
+  .lib-search:focus{border-color:var(--accent)}
+  .automix-banner{background:linear-gradient(90deg,rgba(224,30,43,.15),transparent);
+    border:1px solid var(--accent);border-radius:10px;padding:8px 14px;margin-top:10px;
+    font-size:12px;color:var(--txt);display:none}
+  .automix-banner.on{display:block}
+
+  .footer{margin-top:14px;text-align:center;color:var(--dim);font-size:12px}
+  .hint{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;margin-top:14px;color:var(--dim);font-size:12px;line-height:1.6}
+  .hint b{color:var(--txt)}
+  kbd{background:#000;border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:11px;color:var(--txt)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    background:var(--panel2);border:1px solid var(--accent);padding:10px 18px;border-radius:10px;
+    box-shadow:var(--glow);font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:99}
+  .toast.show{opacity:1}
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">DJO</div>
+    <div>
+      <h1>DJ ORCHESTRA PRO</h1>
+      <small>Κονσόλα DJ + Ορχήστρα + Όργανα — offline</small>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="btn" id="micBtn">🎤 Μικρόφωνο</button>
+    <button class="btn rec" id="recBtn">⏺ Εγγραφή</button>
+    <button class="btn" id="syncBtn">🔗 SYNC BPM</button>
+    <button class="btn" id="automixBtn">🤖 AUTO-MIX</button>
+    <button class="btn" id="helpBtn">❓ Οδηγίες</button>
+    <span id="harmony" class="harmony-badge"></span>
+  </div>
+</header>
+
+<div class="appearance">
+  <div class="app-grp"><span class="app-lbl">🎨 Θέμα</span>
+    <button class="chip" data-theme="olympiacos">Κόκκινο</button>
+    <button class="chip" data-theme="night">Νύχτα</button>
+    <button class="chip" data-theme="sepia">Σέπια</button>
+    <button class="chip" data-theme="ocean">Ωκεανός</button>
+  </div>
+  <div class="app-grp"><span class="app-lbl">🖼 Φόντο</span>
+    <div class="grad-swatches" id="gradSwatches"></div>
+  </div>
+  <div class="app-grp"><span class="app-lbl">✨ Χρώμα εφέ</span>
+    <div class="color-swatches" id="colorSwatches"></div>
+    <input type="color" id="customColor" value="#e01e2b" title="Δικό σου χρώμα">
+  </div>
+  <div class="app-grp"><span class="app-lbl">🎛 Κονσόλα</span>
+    <button class="chip" data-console="digital">Ψηφιακή</button>
+    <button class="chip" data-console="analog">Αναλογική</button>
+  </div>
+  <div class="app-grp"><span class="app-lbl">🔈 Ήχος</span>
+    <select id="soundMode" class="sel" title="Λειτουργία ήχου εξόδου">
+      <option value="flat">Κανονικός</option>
+      <option value="theater">Theater / Σινεμά</option>
+      <option value="surround">Surround</option>
+      <option value="club">Club</option>
+      <option value="bass">Bass Boost</option>
+      <option value="vocal">Φωνή / Vocal</option>
+      <option value="concert">Concert / Ζωντανά</option>
+    </select>
+  </div>
+</div>
+
+<section id="sec-viz" class="viz-panel">
+  <div class="viz-head">🌈 ΟΠΤΙΚΟΠΟΙΗΣΗ <span id="vizStyleName">— ουδέτερο —</span>
+    <select id="vizMode" class="sel" style="margin-left:auto">
+      <option value="auto">Αυτόματο (ανά ύφος)</option>
+      <option value="bars">Μπάρες (spectrum)</option>
+      <option value="mirror">Καθρέφτης</option>
+      <option value="wave">Κύμα</option>
+      <option value="radial">Ραντάρ (κυκλικό)</option>
+      <option value="particles">Σωματίδια</option>
+      <option value="scope">Παλμογράφος</option>
+      <option value="fire">Φωτιά</option>
+    </select>
+    <button class="btn" id="vizToggle">Ενεργή</button>
+  </div>
+  <canvas id="viz"></canvas>
+</section>
+
+<!-- GRAPHIC EQUALIZER -->
+<section id="sec-eq" class="viz-panel">
+  <div class="viz-head">🎚 EQUALIZER <span>8 μπάντες — master τόνος</span>
+    <div class="k-tools" style="margin-left:auto">
+      <button class="btn eqp" data-eqp="flat">Flat</button>
+      <button class="btn eqp" data-eqp="bass">Bass</button>
+      <button class="btn eqp" data-eqp="vocal">Vocal</button>
+      <button class="btn eqp" data-eqp="treble">Treble</button>
+      <button class="btn eqp" data-eqp="smile">V-Smile</button>
+    </div>
+  </div>
+  <div class="eq-bands" id="eqBands"></div>
+</section>
+
+<!-- SMART BAR -->
+<section id="sec-smart" class="smart-bar">
+  <span class="smart-lbl">⚡ Smart</span>
+  <button class="btn" data-smart="brakeA" title="Φρένο βινυλίου (tape-stop) στο Deck A">🛑 Brake A</button>
+  <button class="btn" data-smart="brakeB" title="Φρένο βινυλίου (tape-stop) στο Deck B">🛑 Brake B</button>
+  <button class="btn" id="killBass" title="Κόψε μπάσα και στα δύο decks (τρικ μετάβασης)">🔇 Kill Bass</button>
+  <button class="btn" data-smart="cut" title="Άμεσο πέταγμα crossfader στο άλλο deck">✂ Cut</button>
+  <button class="btn" data-smart="center" title="Crossfader στο κέντρο (ίσο)">⟳ Center</button>
+  <button class="btn" data-smart="syncB" title="Sync στο Α + Play από το cue στο Β">🔗▶ Sync+Play B</button>
+  <button class="btn" data-smart="loop4" title="Άμεσο loop 4 μπιτ στο deck που παίζει">🔁 Insta-Loop</button>
+</section>
+
+<div class="rig">
+  <!-- DECK A -->
+  <section class="deck A" data-deck="A">
+    <div class="deck-top">
+      <span class="deck-tag">DECK A</span>
+      <span class="track-name" id="nameA">— φόρτωσε κομμάτι —</span>
+    </div>
+    <div class="load-row">
+      <button class="btn" onclick="document.getElementById('fileA').click()">📂 Φόρτωση</button>
+      <input type="file" id="fileA" accept="audio/*">
+    </div>
+    <div class="wave-zoom" data-deck="A">
+      <canvas id="zoomA"></canvas>
+      <div class="zoom-center"></div>
+    </div>
+    <div class="wave-wrap ovw" data-deck="A">
+      <canvas id="waveA"></canvas>
+      <div class="playhead"></div>
+    </div>
+    <div class="time-row">
+      <span id="timeA">0:00 / 0:00</span>
+      <span class="bpm-badge">KEY <b id="keyA">—</b></span>
+      <span class="bpm-badge">BPM <b id="bpmA">—</b></span>
+    </div>
+    <div class="turntable" data-deck="A">
+      <div class="platter">
+        <div class="vinyl" data-deck="A">
+          <div class="shine"></div>
+          <div class="label"><span>A</span></div>
+          <div class="strobe"></div>
+        </div>
+      </div>
+      <div class="tonearm" data-deck="A"><div class="arm"></div><div class="pivot"></div></div>
+      <div class="rpm-tag">33⅓</div>
+    </div>
+    <div class="bend-row">
+      <button class="bend-btn" data-bend="-1" data-deck="A" title="Προσωρινή επιβράδυνση (beatmatch)">◀ BEND</button>
+      <button class="slip-btn" data-deck="A" title="Slip mode: μετά το scratch η ροή επιστρέφει εκεί που θα ήταν">SLIP</button>
+      <button class="bend-btn" data-bend="1" data-deck="A" title="Προσωρινή επιτάχυνση (beatmatch)">BEND ▶</button>
+    </div>
+    <div class="transport">
+      <button class="tbtn cue" data-act="cue" data-deck="A">CUE<small>ρύθμιση/άλμα</small></button>
+      <button class="tbtn play" data-act="play" data-deck="A">▶<small>PLAY/PAUSE</small></button>
+      <button class="tbtn" data-act="reset" data-deck="A">⏮<small>στην αρχή</small></button>
+    </div>
+    <div class="pitch-row">
+      <div class="pitch-box">
+        <label>TEMPO / PITCH</label>
+        <div class="val"><span id="pitchvalA">0.0</span>%</div>
+      </div>
+      <input type="range" class="vert" id="pitchA" min="-8" max="8" step="0.05" value="0">
+    </div>
+    <div class="cues" data-deck="A">
+      <div class="cue-pad" data-cue="0">HOT 1</div>
+      <div class="cue-pad" data-cue="1">HOT 2</div>
+      <div class="cue-pad" data-cue="2">HOT 3</div>
+      <div class="cue-pad" data-cue="3">HOT 4</div>
+    </div>
+    <div class="loops" data-deck="A">
+      <div class="loop-pad" data-beats="1">1</div>
+      <div class="loop-pad" data-beats="2">2</div>
+      <div class="loop-pad" data-beats="4">4</div>
+      <div class="loop-pad" data-beats="8">8</div>
+    </div>
+    <div class="fx-rack">
+      <div class="fx-title">🎚 FX</div>
+      <div class="fx-knob"><label>REVERB</label><input type="range" class="h" data-fxfx="reverb" data-deck="A" min="0" max="1" step="0.01" value="0"></div>
+      <div class="fx-knob"><label>ECHO</label><input type="range" class="h" data-fxfx="echo" data-deck="A" min="0" max="1" step="0.01" value="0"></div>
+      <div class="fx-knob"><label>FLANGER</label><input type="range" class="h" data-fxfx="flanger" data-deck="A" min="0" max="1" step="0.01" value="0"></div>
+    </div>
+  </section>
+
+  <!-- MIXER -->
+  <section class="mixer">
+    <h3>MIXER</h3>
+    <div class="eq-cols">
+      <div class="eq-col A" data-deck="A">
+        <div class="ch">A</div>
+        <div class="vu"><i id="vuA"></i><b class="ndl" id="ndlA"></b></div>
+        <div class="knob-row">
+          <div class="knob"><label>GAIN</label><input type="range" class="h" data-fx="gain" data-deck="A" min="0" max="1.5" step="0.01" value="1"></div>
+          <div class="knob"><label>HIGH</label><input type="range" class="h" data-fx="hi" data-deck="A" min="-26" max="26" step="1" value="0"></div>
+          <div class="knob"><label>MID</label><input type="range" class="h" data-fx="mid" data-deck="A" min="-26" max="26" step="1" value="0"></div>
+          <div class="knob"><label>LOW</label><input type="range" class="h" data-fx="lo" data-deck="A" min="-26" max="26" step="1" value="0"></div>
+          <div class="knob"><label>FILTER</label><input type="range" class="h" data-fx="filter" data-deck="A" min="-1" max="1" step="0.01" value="0"></div>
+        </div>
+      </div>
+      <div class="eq-col B" data-deck="B">
+        <div class="ch">B</div>
+        <div class="vu"><i id="vuB"></i><b class="ndl" id="ndlB"></b></div>
+        <div class="knob-row">
+          <div class="knob"><label>GAIN</label><input type="range" class="h" data-fx="gain" data-deck="B" min="0" max="1.5" step="0.01" value="1"></div>
+          <div class="knob"><label>HIGH</label><input type="range" class="h" data-fx="hi" data-deck="B" min="-26" max="26" step="1" value="0"></div>
+          <div class="knob"><label>MID</label><input type="range" class="h" data-fx="mid" data-deck="B" min="-26" max="26" step="1" value="0"></div>
+          <div class="knob"><label>LOW</label><input type="range" class="h" data-fx="lo" data-deck="B" min="-26" max="26" step="1" value="0"></div>
+          <div class="knob"><label>FILTER</label><input type="range" class="h" data-fx="filter" data-deck="B" min="-1" max="1" step="0.01" value="0"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="faders">
+      <div class="fader">
+        <input type="range" class="vert" data-fx="vol" data-deck="A" min="0" max="1" step="0.01" value="1">
+        <span style="color:var(--a-deck)">VOL A</span>
+      </div>
+      <div class="fader">
+        <input type="range" class="vert" data-fx="vol" data-deck="B" min="0" max="1" step="0.01" value="1">
+        <span style="color:var(--b-deck)">VOL B</span>
+      </div>
+    </div>
+
+    <div class="xf">
+      <label>CROSSFADER</label>
+      <input type="range" class="h" id="xfader" min="0" max="1" step="0.01" value="0.5">
+      <div class="xf-track"><span style="color:var(--a-deck)">A</span><span style="color:var(--b-deck)">B</span></div>
+    </div>
+
+    <div class="master-row">
+      <div class="knob"><label>MASTER</label><input type="range" class="h" id="master" min="0" max="1.2" step="0.01" value="0.9"></div>
+      <div class="vu" style="width:70px;align-self:end;margin-bottom:6px"><i id="vuM"></i><b class="ndl" id="ndlM"></b></div>
+    </div>
+  </section>
+
+  <!-- DECK B -->
+  <section class="deck B" data-deck="B">
+    <div class="deck-top">
+      <span class="deck-tag">DECK B</span>
+      <span class="track-name" id="nameB">— φόρτωσε κομμάτι —</span>
+    </div>
+    <div class="load-row">
+      <button class="btn" onclick="document.getElementById('fileB').click()">📂 Φόρτωση</button>
+      <input type="file" id="fileB" accept="audio/*">
+    </div>
+    <div class="wave-zoom" data-deck="B">
+      <canvas id="zoomB"></canvas>
+      <div class="zoom-center"></div>
+    </div>
+    <div class="wave-wrap ovw" data-deck="B">
+      <canvas id="waveB"></canvas>
+      <div class="playhead"></div>
+    </div>
+    <div class="time-row">
+      <span id="timeB">0:00 / 0:00</span>
+      <span class="bpm-badge">KEY <b id="keyB">—</b></span>
+      <span class="bpm-badge">BPM <b id="bpmB">—</b></span>
+    </div>
+    <div class="turntable" data-deck="B">
+      <div class="platter">
+        <div class="vinyl" data-deck="B">
+          <div class="shine"></div>
+          <div class="label"><span>B</span></div>
+          <div class="strobe"></div>
+        </div>
+      </div>
+      <div class="tonearm" data-deck="B"><div class="arm"></div><div class="pivot"></div></div>
+      <div class="rpm-tag">33⅓</div>
+    </div>
+    <div class="bend-row">
+      <button class="bend-btn" data-bend="-1" data-deck="B" title="Προσωρινή επιβράδυνση (beatmatch)">◀ BEND</button>
+      <button class="slip-btn" data-deck="B" title="Slip mode: μετά το scratch η ροή επιστρέφει εκεί που θα ήταν">SLIP</button>
+      <button class="bend-btn" data-bend="1" data-deck="B" title="Προσωρινή επιτάχυνση (beatmatch)">BEND ▶</button>
+    </div>
+    <div class="transport">
+      <button class="tbtn cue" data-act="cue" data-deck="B">CUE<small>ρύθμιση/άλμα</small></button>
+      <button class="tbtn play" data-act="play" data-deck="B">▶<small>PLAY/PAUSE</small></button>
+      <button class="tbtn" data-act="reset" data-deck="B">⏮<small>στην αρχή</small></button>
+    </div>
+    <div class="pitch-row">
+      <div class="pitch-box">
+        <label>TEMPO / PITCH</label>
+        <div class="val"><span id="pitchvalB">0.0</span>%</div>
+      </div>
+      <input type="range" class="vert" id="pitchB" min="-8" max="8" step="0.05" value="0">
+    </div>
+    <div class="cues" data-deck="B">
+      <div class="cue-pad" data-cue="0">HOT 1</div>
+      <div class="cue-pad" data-cue="1">HOT 2</div>
+      <div class="cue-pad" data-cue="2">HOT 3</div>
+      <div class="cue-pad" data-cue="3">HOT 4</div>
+    </div>
+    <div class="loops" data-deck="B">
+      <div class="loop-pad" data-beats="1">1</div>
+      <div class="loop-pad" data-beats="2">2</div>
+      <div class="loop-pad" data-beats="4">4</div>
+      <div class="loop-pad" data-beats="8">8</div>
+    </div>
+    <div class="fx-rack">
+      <div class="fx-title">🎚 FX</div>
+      <div class="fx-knob"><label>REVERB</label><input type="range" class="h" data-fxfx="reverb" data-deck="B" min="0" max="1" step="0.01" value="0"></div>
+      <div class="fx-knob"><label>ECHO</label><input type="range" class="h" data-fxfx="echo" data-deck="B" min="0" max="1" step="0.01" value="0"></div>
+      <div class="fx-knob"><label>FLANGER</label><input type="range" class="h" data-fxfx="flanger" data-deck="B" min="0" max="1" step="0.01" value="0"></div>
+    </div>
+  </section>
+</div>
+
+<div class="automix-banner" id="automixBanner"></div>
+
+<!-- SAMPLER -->
+<section class="sampler" id="sec-sampler">
+  <div class="sec-title">
+    <h3>🎛 SAMPLER <span>κλικ ή πλήκτρα 1–8 · δεξί κλικ σε άδειο = φόρτωση δικού σου ήχου</span></h3>
+    <button class="btn" id="samplerToMaster">Έξοδος: MASTER ✓</button>
+  </div>
+  <div class="sampler-grid" id="samplerGrid"></div>
+  <input type="file" id="sampleFile" accept="audio/*">
+</section>
+
+<!-- SOUNDBOARD -->
+<section class="sampler" id="sec-soundboard">
+  <div class="sec-title">
+    <h3>🔊 SOUNDBOARD <span>meme-style ηχητικά εφέ (συνθετικά) · πρόσθεσε & δικά σου κλιπ που αποθηκεύονται μόνιμα</span></h3>
+    <button class="btn" id="addSoundBtn">➕ Δικός μου ήχος</button>
+    <input type="file" id="soundFile" accept="audio/*" multiple>
+  </div>
+  <div class="sampler-grid" id="soundboardGrid"></div>
+</section>
+
+<!-- LIVE INSTRUMENTS -->
+<section class="sampler" id="sec-instruments">
+  <div class="sec-title">
+    <h3>🎹 ΟΡΓΑΝΑ (Live) <span>παίξε πάνω στο mix — ακούγεται & γράφεται στην εγγραφή</span></h3>
+    <select id="instSelect" class="sel">
+      <option value="piano">🎹 Πιάνο</option>
+      <option value="guitar">🎸 Κιθάρα</option>
+      <option value="bass">🎸 Μπάσο</option>
+      <option value="synth">🎛 Synth</option>
+      <option value="clarinet">🎵 Κλαρίνο</option>
+      <option value="violin">🎻 Βιολί</option>
+      <option value="bouzouki">🪕 Μπουζούκι</option>
+      <option value="toumbeleki">🪘 Τουμπελέκι</option>
+      <option value="drums">🥁 Ντραμς</option>
+    </select>
+    <div class="knob" style="width:130px"><label>ΕΝΤΑΣΗ ΟΡΓΑΝΟΥ</label><input id="instVol" type="range" min="0" max="1.4" step="0.01" value="0.9"></div>
+  </div>
+  <div class="kbd-row" id="kbdRow">
+    <button class="btn" id="kbdToggle" title="Παίξε πιάνο με το πληκτρολόγιο του υπολογιστή">⌨ Πληκτρολόγιο: OFF</button>
+    <div class="oct-ctl"><span>Οκτάβα</span><button class="btn" id="octDown">−</button><b id="octVal">4</b><button class="btn" id="octUp">+</button></div>
+    <span class="kbd-hint">Κάτω σειρά <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd>… = λευκά · <kbd>S</kbd><kbd>D</kbd><kbd>G</kbd>… = μαύρα · πάνω σειρά <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd>… = επόμενη οκτάβα</span>
+  </div>
+  <div id="autoAccomp" class="auto-accomp"></div>
+  <div id="pianoWrap" class="piano"></div>
+  <div id="drumWrap" class="drum-grid" style="display:none"></div>
+  <div id="fretWrap" class="fretwrap" style="display:none"></div>
+</section>
+
+<!-- ORCHESTRA / BAND MACHINE -->
+<section class="sampler" id="sec-band">
+  <div class="sec-title">
+    <h3>🥁 ΟΡΧΗΣΤΡΑ <span>αυτόματος ρυθμός + μπάσο + συγχορδίες — παίξε lead από τα Όργανα από πάνω</span></h3>
+    <div class="k-tools">
+      <button class="btn" id="bandRec" title="Ηχογράφηση μόνο της ορχήστρας σε αρχείο">🎙 Εγγραφή ορχήστρας</button>
+      <button class="btn" id="bandPlay">▶ Έναρξη</button>
+    </div>
+  </div>
+  <div class="band-controls">
+    <div class="band-grp">
+      <label>ΣΤΥΛ</label>
+      <select id="bandStyle" class="sel"></select>
+    </div>
+    <div class="band-grp">
+      <label>ΤΑΧΥΤΗΤΑ (BPM)</label>
+      <div class="band-bpm"><input type="range" id="bandBpm" class="h" min="60" max="180" step="1" value="100"><b id="bandBpmVal">100</b></div>
+    </div>
+    <div class="band-grp">
+      <label>ΤΟΝΟΣ (Κλειδί)</label>
+      <select id="bandKey" class="sel"></select>
+    </div>
+    <div class="band-grp">
+      <label>ΑΚΟΛΟΥΘΙΑ ΣΥΓΧΟΡΔΙΩΝ</label>
+      <select id="bandProg" class="sel"></select>
+    </div>
+  </div>
+
+  <div class="band-steps" id="bandSteps"></div>
+
+  <div class="band-layers">
+    <div class="layer" data-layer="drums">
+      <button class="layer-toggle on">🥁 Ντραμς</button>
+      <input type="range" class="h" data-layervol="drums" min="0" max="1.4" step="0.01" value="1">
+    </div>
+    <div class="layer" data-layer="bass">
+      <button class="layer-toggle on">🎸 Μπάσο</button>
+      <input type="range" class="h" data-layervol="bass" min="0" max="1.4" step="0.01" value="0.9">
+    </div>
+    <div class="layer" data-layer="chords">
+      <button class="layer-toggle on">🎹 Συγχορδίες</button>
+      <input type="range" class="h" data-layervol="chords" min="0" max="1.4" step="0.01" value="0.6">
+    </div>
+    <div class="layer">
+      <button class="layer-toggle" id="metroToggle">🔔 Μετρονόμος</button>
+      <span class="now-chord">Συγχορδία: <b id="nowChord">—</b></span>
+    </div>
+  </div>
+
+  <!-- FILL / SWING -->
+  <div class="band-extra">
+    <div class="be-grp"><label>FILL κάθε</label>
+      <select id="fillEvery" class="sel">
+        <option value="0">— (κλειστό)</option>
+        <option value="4">4 μπάρες</option>
+        <option value="8" selected>8 μπάρες</option>
+      </select>
+    </div>
+    <button class="btn" id="fillNow">🥁 FILL τώρα</button>
+    <div class="be-grp"><label>SWING / GROOVE</label>
+      <div class="band-bpm"><input type="range" id="swing" class="h" min="0" max="0.6" step="0.01" value="0"><b id="swingVal">0%</b></div>
+    </div>
+  </div>
+
+  <!-- PATTERN EDITOR -->
+  <div class="pattern-editor">
+    <div class="pe-head">✏ Επεξεργασία μοτίβου <span>κλικ στα κελιά — φτιάξε δικό σου ρυθμό</span>
+      <div class="pe-tools">
+        <button class="btn" id="peSave">💾 Αποθήκευση</button>
+        <button class="btn" id="peClear">🗑 Καθάρισμα</button>
+      </div>
+    </div>
+    <div class="pe-grid" id="peGrid"></div>
+  </div>
+
+  <!-- SONG MODE -->
+  <div class="pattern-editor">
+    <div class="pe-head">🎬 Song Mode <span>αλληλουχία τμημάτων (Intro / Verse / Chorus…)</span>
+      <div class="pe-tools">
+        <button class="layer-toggle" id="songToggle">Ανενεργό</button>
+        <label class="song-bars">Μπάρες <input type="number" id="songBars" min="1" max="16" value="4"></label>
+        <button class="btn" id="songLoop">🔁 Loop: ΝΑΙ</button>
+        <button class="btn" id="songSave">💾 Song</button>
+        <button class="btn" id="songOpen">📂 Άνοιγμα</button>
+        <input type="file" id="songFile" accept=".json,application/json">
+        <button class="btn" id="songClear">🗑</button>
+      </div>
+    </div>
+    <div class="song-add">
+      <button class="btn" data-sec="Intro">＋ Intro</button>
+      <button class="btn" data-sec="Verse">＋ Verse</button>
+      <button class="btn" data-sec="Chorus">＋ Chorus</button>
+      <button class="btn" data-sec="Bridge">＋ Bridge</button>
+      <button class="btn" data-sec="Outro">＋ Outro</button>
+    </div>
+    <div class="song-seq" id="songSeq"><span class="song-empty">Πρόσθεσε τμήματα — κάθε τμήμα κρατά το τρέχον ΣΤΥΛ / ΑΚΟΛΟΥΘΙΑ / μπάρες.</span></div>
+    <div class="song-now">Τώρα παίζει: <b id="songNow">—</b></div>
+  </div>
+
+  <!-- KARAOKE -->
+  <div class="karaoke">
+    <div class="sec-title" style="margin-bottom:8px">
+      <h3>🎤 ΚΑΡΑΟΚΕ <span>βάλε τους δικούς σου στίχους — κύλιση & τονισμός γραμμής</span></h3>
+      <div class="k-tools">
+        <button class="btn" id="kLoad">📋 Φόρτωση στίχων</button>
+        <button class="btn" id="kPrev">⟨ Προηγ.</button>
+        <button class="btn" id="kAuto">▶ Auto</button>
+        <button class="btn" id="kNext">Επόμ. ⟩</button>
+      </div>
+    </div>
+    <textarea id="kInput" class="k-input" placeholder="Επικόλλησε ή γράψε εδώ τους στίχους σου (μία γραμμή ανά σειρά) και πάτησε «Φόρτωση στίχων»…"></textarea>
+    <div id="kDisplay" class="k-display"><div class="k-empty">— δεν έχουν φορτωθεί στίχοι —</div></div>
+  </div>
+</section>
+
+<!-- LIBRARY -->
+<section class="library" id="sec-library">
+  <div class="sec-title">
+    <h3>📚 ΒΙΒΛΙΟΘΗΚΗ <span>μόνιμη — ο φάκελός σου επαναφορτώνεται αυτόματα</span></h3>
+    <input type="text" class="lib-search" id="libSearch" placeholder="🔎 Αναζήτηση κομματιού…">
+    <button class="btn" id="addFolderBtn">📁 Προσθήκη φακέλου</button>
+    <button class="btn" id="addFilesBtn">➕ Αρχεία</button>
+    <button class="btn" id="exportSetBtn" title="Εξαγωγή της σειράς κομματιών που έπαιξες">💾 Εξαγωγή playlist (<span id="histCount">0</span>)</button>
+    <input type="file" id="libFiles" accept="audio/*" multiple>
+  </div>
+  <div class="lib-list" id="libList">
+    <div class="lib-empty">Δεν υπάρχουν κομμάτια ακόμη.<br>Πάτησε <b>«Προσθήκη φακέλου»</b> για να συνδέσεις τη μουσική σου (θυμάται τον φάκελο) ή <b>«Αρχεία»</b> για γρήγορη φόρτωση.</div>
+  </div>
+</section>
+
+<div class="hint" id="hint">
+  <b>Πλήκτρα:</b>
+  <kbd>Q</kbd> Play A · <kbd>P</kbd> Play B · <kbd>A</kbd> Cue A · <kbd>L</kbd> Cue B ·
+  <kbd>Z</kbd>/<kbd>X</kbd> pitch A ± · <kbd>,</kbd>/<kbd>.</kbd> pitch B ± ·
+  <kbd>←</kbd>/<kbd>→</kbd> Crossfader · <kbd>Space</kbd> Play/Pause και τα δύο ·
+  <kbd>1</kbd>–<kbd>8</kbd> Sampler pads · <kbd>M</kbd> Auto-mix.
+  <br>Όλα δουλεύουν <b>τοπικά</b> — τα κομμάτια σου δεν ανεβαίνουν πουθενά. Το <b>beatgrid</b> εμφανίζεται μόλις ανιχνευτεί BPM.
+  <br>🎚 <b>FX</b> ανά deck: Reverb / Echo (σε ρυθμό BPM) / Flanger. 🎵 <b>KEY</b>: ανιχνεύεται το κλειδί + κωδικός <b>Camelot</b> — το badge πάνω δεξιά δείχνει αν τα δύο decks είναι <b>αρμονικά συμβατά</b>.
+  <br>🔊 <b>Soundboard</b>: έτοιμα meme εφέ + πρόσθεσε δικά σου (αποθηκεύονται μόνιμα). 🎨 <b>Εμφάνιση</b>: θέματα (Νύχτα/Σέπια/Ωκεανός), gradient φόντα και χρώμα εφέ — αποθηκεύονται αυτόματα.
+  <br>🎛 <b>Πικάπ</b>: <b>SLIP</b> (μετά το scratch η ροή επιστρέφει εκεί που θα ήταν) · <b>BEND</b> (κράτα πατημένο για προσωρινή επιτάχυνση/επιβράδυνση beatmatch) · <b>CLOSE-UP</b> κυματομορφή που κυλάει + <b>OVERVIEW</b> όλου του κομματιού. Η <b>Κονσόλα</b> γίνεται <b>Αναλογική</b> (βελόνες VU, μεταλλικό skin) ή <b>Ψηφιακή</b>.
+</div>
+
+<div class="footer">DJ ORCHESTRA PRO · Web Audio · φτιαγμένο για τοπική χρήση</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   DJ PRO — Web Audio engine
+   ============================================================ */
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+const master = AC.createGain(); master.gain.value = 0.9; // σημείο άθροισης (όλα συνδέονται εδώ)
+
+// ---- Master output FX chain (λειτουργία ήχου: theater/surround/club…) ----
+const mLow=AC.createBiquadFilter();  mLow.type='lowshelf';  mLow.frequency.value=110;
+const mMid=AC.createBiquadFilter();  mMid.type='peaking';   mMid.frequency.value=2500; mMid.Q.value=1;
+const mHigh=AC.createBiquadFilter(); mHigh.type='highshelf';mHigh.frequency.value=6000;
+const mOut=AC.createGain();
+const mVerb=AC.createConvolver(); mVerb.buffer=makeIR(3.5,1.8);
+const mVerbGain=AC.createGain(); mVerbGain.gain.value=0;
+const mSplit=AC.createChannelSplitter(2), mMerge=AC.createChannelMerger(2);
+const mDelay=AC.createDelay(0.05); mDelay.delayTime.value=0.013;
+const mWideGain=AC.createGain(); mWideGain.gain.value=0;
+master.connect(mLow); mLow.connect(mMid); mMid.connect(mHigh);
+mHigh.connect(mOut);                                   // dry
+mHigh.connect(mVerb); mVerb.connect(mVerbGain); mVerbGain.connect(mOut);   // ambience
+mHigh.connect(mSplit);                                 // stereo widener (Haas)
+mSplit.connect(mMerge,0,0);
+mSplit.connect(mDelay,1); mDelay.connect(mMerge,0,1);
+mMerge.connect(mWideGain); mWideGain.connect(mOut);
+
+const masterAnalyser = AC.createAnalyser(); masterAnalyser.fftSize = 512;
+const recDest = AC.createMediaStreamDestination();
+mOut.connect(masterAnalyser);
+masterAnalyser.connect(AC.destination);
+mOut.connect(recDest);
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* ---------- Deck class ---------- */
+class Deck {
+  constructor(id){
+    this.id = id;
+    this.buffer = null;
+    this.source = null;
+    this.playing = false;
+    this.startedAt = 0;      // AC.currentTime when playback started
+    this.offset = 0;         // position (sec) at last start/pause
+    this.rate = 1;           // playbackRate from pitch
+    this.duration = 0;
+    this.bpm = null;
+    this.key = null;         // {name, camelot, mode}
+    this.cuePoint = 0;
+    this.hotcues = [null,null,null,null];
+    this.loop = null;        // {start,end,beats}
+    this.baseBpm = null;
+    this.beatOffset = 0;
+    this.slip = false;       // slip mode
+    this._bending = false;
+
+    // audio graph: source -> trim -> lo -> mid -> hi -> filter -> [FX] -> vol -> xfGain -> master
+    this.trim = AC.createGain();
+    this.lo = AC.createBiquadFilter(); this.lo.type='lowshelf';  this.lo.frequency.value=200;
+    this.mid = AC.createBiquadFilter(); this.mid.type='peaking';  this.mid.frequency.value=1000; this.mid.Q.value=0.9;
+    this.hi = AC.createBiquadFilter(); this.hi.type='highshelf'; this.hi.frequency.value=3200;
+    this.filter = AC.createBiquadFilter(); this.filter.type='allpass';
+    this.vol = AC.createGain();
+    this.xf = AC.createGain();
+    this.analyser = AC.createAnalyser(); this.analyser.fftSize = 256;
+
+    // ---- FX rack (parallel wet buses summed into vol) ----
+    this.fxIn = AC.createGain();
+    this.dry = AC.createGain(); this.dry.gain.value = 1;
+    // reverb
+    this.reverb = AC.createConvolver(); this.reverb.buffer = makeIR(2.8, 2.2);
+    this.reverbWet = AC.createGain(); this.reverbWet.gain.value = 0;
+    // echo / delay (feedback loop, BPM-synced on load)
+    this.echo = AC.createDelay(2.0); this.echo.delayTime.value = 0.375;
+    this.echoFb = AC.createGain(); this.echoFb.gain.value = 0.38;
+    this.echoWet = AC.createGain(); this.echoWet.gain.value = 0;
+    this.echo.connect(this.echoFb); this.echoFb.connect(this.echo);
+    // flanger (LFO-modulated short delay + feedback)
+    this.flanger = AC.createDelay(0.05); this.flanger.delayTime.value = 0.005;
+    this.flangerFb = AC.createGain(); this.flangerFb.gain.value = 0.55;
+    this.flanger.connect(this.flangerFb); this.flangerFb.connect(this.flanger);
+    this.flangerLFO = AC.createOscillator(); this.flangerLFO.type='sine'; this.flangerLFO.frequency.value = 0.28;
+    this.flangerDepth = AC.createGain(); this.flangerDepth.gain.value = 0.0022;
+    this.flangerLFO.connect(this.flangerDepth); this.flangerDepth.connect(this.flanger.delayTime);
+    this.flangerLFO.start();
+    this.flangerWet = AC.createGain(); this.flangerWet.gain.value = 0;
+
+    this.trim.connect(this.lo); this.lo.connect(this.mid); this.mid.connect(this.hi);
+    this.hi.connect(this.filter); this.filter.connect(this.fxIn);
+    this.fxIn.connect(this.dry); this.dry.connect(this.vol);
+    this.fxIn.connect(this.reverb); this.reverb.connect(this.reverbWet); this.reverbWet.connect(this.vol);
+    this.fxIn.connect(this.echo); this.echo.connect(this.echoWet); this.echoWet.connect(this.vol);
+    this.fxIn.connect(this.flanger); this.flanger.connect(this.flangerWet); this.flangerWet.connect(this.vol);
+    this.vol.connect(this.xf); this.xf.connect(this.analyser); this.analyser.connect(master);
+  }
+
+  get position(){
+    if(!this.buffer) return 0;
+    if(this.playing) return this.offset + (AC.currentTime - this.startedAt)*this.rate;
+    return this.offset;
+  }
+
+  load(buffer, name){
+    this.stop();
+    this.buffer = buffer;
+    this.duration = buffer.duration;
+    this.offset = 0; this.cuePoint = 0;
+    this.hotcues = [null,null,null,null];
+    this.loop = null;
+    const beat = detectBPM(buffer);
+    this.bpm = beat.bpm;
+    this.baseBpm = beat.bpm;
+    this.beatOffset = beat.offset || 0;
+    if(this.bpm){ this.echo.delayTime.value = (60/this.bpm)*0.75; } // dotted-eighth echo
+    this.key = detectKey(buffer);
+    this.trackName = name;
+    drawWave(this.id, buffer);
+    document.getElementById('bpm'+this.id).textContent = this.bpm ? this.bpm.toFixed(1) : '—';
+    document.getElementById('key'+this.id).textContent = this.key ? (this.key.camelot+' · '+this.key.name) : '—';
+    document.getElementById('name'+this.id).textContent = name;
+    updateDeckBpmDisplay(this.id);
+    updateHarmony();
+  }
+
+  _makeSource(){
+    const s = AC.createBufferSource();
+    s.buffer = this.buffer;
+    s.playbackRate.value = this.rate;
+    s.connect(this.trim);
+    if(this.loop){
+      s.loop = true; s.loopStart = this.loop.start; s.loopEnd = this.loop.end;
+    }
+    s.onended = ()=>{ if(s._natural){ this.playing=false; this.offset=0; syncPlayBtn(this.id);} };
+    return s;
+  }
+
+  play(){
+    if(!this.buffer || this.playing) return;
+    if(AC.state==='suspended') AC.resume();
+    this.source = this._makeSource();
+    let startOffset = this.offset;
+    if(this.loop && (startOffset < this.loop.start || startOffset > this.loop.end)) startOffset = this.loop.start;
+    this.source.start(0, startOffset);
+    this.startedAt = AC.currentTime;
+    this.playing = true;
+    this.source._natural = true;
+    recordPlay(this);
+    syncPlayBtn(this.id);
+  }
+
+  pause(){
+    if(!this.playing) return;
+    this.offset = Math.min(this.position, this.duration);
+    if(this.source){ this.source._natural=false; try{this.source.stop();}catch(e){} }
+    this.playing = false;
+    syncPlayBtn(this.id);
+  }
+
+  stop(){
+    if(this.source){ this.source._natural=false; try{this.source.stop();}catch(e){} }
+    this.playing = false;
+  }
+
+  toggle(){ this.playing ? this.pause() : this.play(); }
+
+  seek(pos){
+    pos = Math.max(0, Math.min(pos, this.duration));
+    const wasPlaying = this.playing;
+    if(wasPlaying){ this.stop(); }
+    this.offset = pos;
+    if(wasPlaying){ this.play(); }
+  }
+
+  nudge(sec){ this.seek(this.position + sec); }
+
+  setRate(pitchPct){
+    this.rate = 1 + pitchPct/100;
+    if(this.source && !this._bending) this.source.playbackRate.value = this.rate;
+    updateDeckBpmDisplay(this.id);
+  }
+
+  /* temporary pitch-bend (beatmatch nudge) */
+  bendStart(dir){
+    if(!this.source || !this.playing) return;
+    this._bending = true;
+    this.source.playbackRate.value = this.rate * (1 + dir*0.06);
+  }
+  bendEnd(){
+    this._bending = false;
+    if(this.source) this.source.playbackRate.value = this.rate;
+  }
+
+  /* tape-stop φρένο βινυλίου */
+  brake(){
+    if(!this.playing || !this.source) return;
+    const t=AC.currentTime;
+    this._bending=true;
+    this.source.playbackRate.cancelScheduledValues(t);
+    this.source.playbackRate.setValueAtTime(this.source.playbackRate.value, t);
+    this.source.playbackRate.linearRampToValueAtTime(0.02, t+0.7);
+    setTimeout(()=>{ this._bending=false; this.pause(); }, 730);
+  }
+
+  setCue(){
+    this.cuePoint = this.position;
+    toast('CUE '+this.id+' @ '+fmt(this.cuePoint));
+  }
+  gotoCue(){ this.seek(this.cuePoint); }
+  reset(){ this.seek(0); this.cuePoint=0; }
+
+  setHotcue(i){
+    if(this.hotcues[i]==null){ this.hotcues[i]=this.position; }
+    else { this.seek(this.hotcues[i]); }
+    refreshCuePads(this.id);
+  }
+  clearHotcue(i){ this.hotcues[i]=null; refreshCuePads(this.id); }
+
+  setLoop(beats){
+    if(!this.bpm){ toast('Δεν ανιχνεύτηκε BPM'); return; }
+    const beatSec = 60/this.bpm;
+    const start = this.position;
+    const end = start + beatSec*beats;
+    this.loop = {start, end, beats};
+    if(this.playing){ this.stop(); this.offset=start; this.play(); }
+  }
+  clearLoop(){
+    const wasPlaying=this.playing, pos=this.position;
+    this.loop=null;
+    if(wasPlaying){ this.stop(); this.offset=pos; this.play(); }
+  }
+}
+
+const decks = { A:new Deck('A'), B:new Deck('B') };
+
+/* ---------- BPM + beat-phase detection (energy-peak autocorrelation) ---------- */
+function detectBPM(buffer){
+  try{
+    const sr = buffer.sampleRate;
+    const ch = buffer.getChannelData(0);
+    const step = Math.floor(sr/200); // ~200Hz envelope
+    const env=[];
+    for(let i=0;i<ch.length;i+=step){
+      let sum=0;
+      for(let j=0;j<step && i+j<ch.length;j++){ const v=ch[i+j]; sum+=v*v; }
+      env.push(Math.sqrt(sum/step));
+    }
+    const envRate = sr/step;
+    const onset=[];
+    for(let i=1;i<env.length;i++){ onset.push(Math.max(0, env[i]-env[i-1])); }
+    let best=0, bestLag=0;
+    const minLag=Math.floor(envRate*60/190), maxLag=Math.floor(envRate*60/60);
+    for(let lag=minLag; lag<=maxLag; lag++){
+      let s=0;
+      for(let i=0;i<onset.length-lag;i++){ s+=onset[i]*onset[i+lag]; }
+      if(s>best){ best=s; bestLag=lag; }
+    }
+    if(!bestLag) return {bpm:null, offset:0};
+    let bpm = 60*envRate/bestLag;
+    let lag = bestLag;
+    while(bpm<70){ bpm*=2; lag=Math.round(lag/2); }
+    while(bpm>180){ bpm/=2; lag*=2; }
+    // find beat phase: which offset in [0,lag) maximizes onset energy on the grid
+    let bestPhase=0, bestPhaseE=-1;
+    const P=Math.max(1,Math.round(lag));
+    for(let p=0;p<P;p++){
+      let e=0;
+      for(let i=p;i<onset.length;i+=P){ e+=onset[i]; }
+      if(e>bestPhaseE){ bestPhaseE=e; bestPhase=p; }
+    }
+    return { bpm:Math.round(bpm*10)/10, offset:bestPhase/envRate };
+  }catch(e){ return {bpm:null, offset:0}; }
+}
+
+/* ---------- Reverb impulse response (synthetic) ---------- */
+function makeIR(seconds, decay){
+  const rate=AC.sampleRate, len=Math.floor(rate*seconds);
+  const buf=AC.createBuffer(2,len,rate);
+  for(let c=0;c<2;c++){
+    const d=buf.getChannelData(c);
+    for(let i=0;i<len;i++){ d[i]=(Math.random()*2-1)*Math.pow(1-i/len, decay); }
+  }
+  return buf;
+}
+
+/* ---------- KEY / tonality detection (chroma + Krumhansl + Camelot) ---------- */
+function fft(re, im){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){
+    let bit=n>>1;
+    for(;j&bit;bit>>=1) j^=bit; j^=bit;
+    if(i<j){ let t=re[i];re[i]=re[j];re[j]=t; t=im[i];im[i]=im[j];im[j]=t; }
+  }
+  for(let len=2;len<=n;len<<=1){
+    const ang=-2*Math.PI/len, wr=Math.cos(ang), wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){
+      let cr=1,ci=0;
+      for(let k=0;k<len/2;k++){
+        const a=i+k, b=i+k+len/2;
+        const vr=re[b]*cr-im[b]*ci, vi=re[b]*ci+im[b]*cr;
+        re[b]=re[a]-vr; im[b]=im[a]-vi; re[a]+=vr; im[a]+=vi;
+        const ncr=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=ncr;
+      }
+    }
+  }
+}
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const CAMELOT_MAJ=['8B','3B','10B','5B','12B','7B','2B','9B','4B','11B','6B','1B'];
+const CAMELOT_MIN=['5A','12A','7A','2A','9A','4A','11A','6A','1A','8A','3A','10A'];
+const KS_MAJ=[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88];
+const KS_MIN=[6.33,2.68,3.52,5.38,2.60,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
+function pearson(a,b){
+  const n=a.length; let ma=0,mb=0; for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];} ma/=n;mb/=n;
+  let num=0,da=0,db=0;
+  for(let i=0;i<n;i++){ const x=a[i]-ma,y=b[i]-mb; num+=x*y; da+=x*x; db+=y*y; }
+  return num/(Math.sqrt(da*db)||1);
+}
+function detectKey(buffer){
+  try{
+    const sr=buffer.sampleRate;
+    const src=buffer.getChannelData(0);
+    const N=8192, hop=4096;
+    const win=new Float32Array(N);
+    for(let i=0;i<N;i++) win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(N-1));
+    const chroma=new Float32Array(12);
+    const maxSamp=Math.min(src.length, sr*120); // up to 120s
+    const re=new Float32Array(N), im=new Float32Array(N);
+    const mag=new Float32Array(N/2);
+    for(let s=0;s+N<=maxSamp;s+=hop){
+      for(let i=0;i<N;i++){ re[i]=src[s+i]*win[i]; im[i]=0; }
+      fft(re,im);
+      const kmin=Math.max(2,Math.floor(55*N/sr)), kmax=Math.min(N/2-1,Math.ceil(4000*N/sr));
+      for(let k=kmin-1;k<=kmax+1;k++) mag[k]=Math.sqrt(re[k]*re[k]+im[k]*im[k]);
+      // spectral peak-picking with parabolic interpolation → cleaner chroma
+      for(let k=kmin;k<=kmax;k++){
+        if(mag[k]<=mag[k-1] || mag[k]<mag[k+1]) continue; // local maximum only
+        const denom=(mag[k-1]-2*mag[k]+mag[k+1]);
+        const delta = denom!==0 ? 0.5*(mag[k-1]-mag[k+1])/denom : 0;
+        const f=(k+delta)*sr/N; if(f<55||f>4000) continue;
+        const pc=((Math.round(69+12*Math.log2(f/440))%12)+12)%12;
+        chroma[pc]+=mag[k];
+      }
+    }
+    let sum=0; for(let i=0;i<12;i++) sum+=chroma[i];
+    if(sum<1e-6) return null;
+    for(let i=0;i<12;i++) chroma[i]/=sum;
+    let best={score:-2,tonic:0,mode:'maj'};
+    for(let t=0;t<12;t++){
+      const rot=new Float32Array(12);
+      for(let i=0;i<12;i++) rot[i]=chroma[(t+i)%12];
+      const cm=pearson(rot,KS_MAJ), cn=pearson(rot,KS_MIN);
+      if(cm>best.score) best={score:cm,tonic:t,mode:'maj'};
+      if(cn>best.score) best={score:cn,tonic:t,mode:'min'};
+    }
+    const cam = best.mode==='maj' ? CAMELOT_MAJ[best.tonic] : CAMELOT_MIN[best.tonic];
+    return { name:NOTE_NAMES[best.tonic]+(best.mode==='maj'?' maj':' min'), camelot:cam, tonic:best.tonic, mode:best.mode };
+  }catch(e){ return null; }
+}
+function camelotParse(c){ return { n:parseInt(c), l:c.slice(-1) }; }
+function harmonyOK(c1,c2){
+  if(!c1||!c2) return false;
+  const a=camelotParse(c1), b=camelotParse(c2);
+  if(a.n===b.n) return true;                       // ίδιος αριθμός (ίδιο ή σχετικό)
+  if(a.l===b.l && (Math.abs(a.n-b.n)===1 || Math.abs(a.n-b.n)===11)) return true; // ±1 γειτονικό
+  return false;
+}
+function updateHarmony(){
+  const el=document.getElementById('harmony'); if(!el) return;
+  const ka=decks.A.key, kb=decks.B.key;
+  if(!ka||!kb){ el.textContent=''; el.className='harmony-badge'; return; }
+  if(harmonyOK(ka.camelot,kb.camelot)){ el.textContent='🎵 Αρμονικά συμβατά ('+ka.camelot+' ↔ '+kb.camelot+')'; el.className='harmony-badge ok'; }
+  else { el.textContent='⚠ Πιθανή παραφωνία ('+ka.camelot+' ↔ '+kb.camelot+')'; el.className='harmony-badge bad'; }
+}
+
+/* ---------- Waveform ---------- */
+const waveData = {};
+function drawWave(id, buffer){
+  const cv = document.getElementById('wave'+id);
+  const dpr = window.devicePixelRatio||1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width=w*dpr; cv.height=h*dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr,dpr);
+  const ch = buffer.getChannelData(0);
+  const N = w; const block = Math.floor(ch.length/N);
+  const peaks=[];
+  for(let i=0;i<N;i++){
+    let max=0;
+    for(let j=0;j<block;j++){ const v=Math.abs(ch[i*block+j]||0); if(v>max)max=v; }
+    peaks.push(max);
+  }
+  // fine peaks for the zoomed close-up view (~ hop 1024 samples)
+  const sr = buffer.sampleRate;
+  const hop = 1024;
+  const fine=[]; for(let i=0;i+hop<=ch.length;i+=hop){ let m=0; for(let j=0;j<hop;j++){ const v=Math.abs(ch[i+j]); if(v>m)m=v; } fine.push(m); }
+  const fineRate = sr/hop; // buckets per second
+  // size zoom canvas
+  const zc = document.getElementById('zoom'+id);
+  const zw = zc.clientWidth, zh = zc.clientHeight;
+  zc.width=zw*dpr; zc.height=zh*dpr;
+  const zctx = zc.getContext('2d'); zctx.setTransform(dpr,0,0,dpr,0,0);
+  waveData[id]={peaks,ctx,w,h, fine,fineRate, zctx,zw,zh};
+  paintWave(id,0);
+}
+function drawZoom(id, pos){
+  const d = waveData[id]; if(!d || !d.zctx) return;
+  const {fine,fineRate,zctx,zw,zh}=d; const mid=zh/2;
+  const dk=decks[id];
+  const cs=getComputedStyle(document.documentElement);
+  const accent=(id==='A'?cs.getPropertyValue('--a-deck'):cs.getPropertyValue('--b-deck')).trim()||(id==='A'?'#e01e2b':'#2b7de0');
+  const WIN=6; // δευτερόλεπτα ορατά συνολικά
+  const t0=pos-WIN/2;
+  zctx.clearRect(0,0,zw,zh);
+  // beatgrid μέσα στο παράθυρο
+  if(dk.bpm){
+    const beatSec=60/dk.bpm; const off=dk.beatOffset%beatSec;
+    let first=Math.ceil((t0-off)/beatSec);
+    for(let b=first; ;b++){ const t=off+b*beatSec; if(t>t0+WIN) break; if(t<0) continue;
+      const x=((t-t0)/WIN)*zw; const down=(((b%4)+4)%4)===0;
+      zctx.strokeStyle=down?'rgba(255,255,255,.3)':'rgba(255,255,255,.1)'; zctx.lineWidth=down?1.4:0.8;
+      zctx.beginPath(); zctx.moveTo(x+.5,0); zctx.lineTo(x+.5,zh); zctx.stroke(); }
+  }
+  // κυματομορφή
+  const cx=zw/2;
+  for(let x=0;x<zw;x++){
+    const t=t0+(x/zw)*WIN; if(t<0||t>dk.duration) continue;
+    const idx=Math.floor(t*fineRate); const amp=(fine[idx]||0)*mid*1.7;
+    zctx.fillStyle = x<cx ? accent : '#3a4152';
+    zctx.fillRect(x, mid-amp, 1, amp*2);
+  }
+  zctx.strokeStyle='rgba(255,255,255,.06)'; zctx.beginPath(); zctx.moveTo(0,mid); zctx.lineTo(zw,mid); zctx.stroke();
+}
+function paintWave(id, progress){
+  const d = waveData[id]; if(!d) return;
+  const {peaks,ctx,w,h}=d; const mid=h/2;
+  const cs=getComputedStyle(document.documentElement);
+  const accent = (id==='A' ? cs.getPropertyValue('--a-deck') : cs.getPropertyValue('--b-deck')).trim() || (id==='A'?'#e01e2b':'#2b7de0');
+  ctx.clearRect(0,0,w,h);
+  const px = Math.floor(progress*w);
+  for(let i=0;i<w;i++){
+    const amp = peaks[i]*mid*1.6;
+    ctx.fillStyle = i<px ? accent : '#3a4152';
+    ctx.fillRect(i, mid-amp, 1, amp*2);
+  }
+  // center line
+  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.beginPath();
+  ctx.moveTo(0,mid); ctx.lineTo(w,mid); ctx.stroke();
+  // BEATGRID
+  const dk = decks[id];
+  if(dk && dk.bpm && dk.duration){
+    const beatSec = 60/dk.bpm;
+    const off = dk.beatOffset % beatSec;
+    let beat = 0;
+    for(let t=off; t<dk.duration; t+=beatSec, beat++){
+      const x = Math.round((t/dk.duration)*w);
+      const downbeat = (beat % 4)===0;
+      ctx.strokeStyle = downbeat ? 'rgba(255,255,255,.32)' : 'rgba(255,255,255,.12)';
+      ctx.lineWidth = downbeat ? 1.4 : 0.8;
+      ctx.beginPath(); ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,h); ctx.stroke();
+    }
+  }
+}
+
+/* ---------- UI wiring ---------- */
+function fmt(s){ s=Math.max(0,s); const m=Math.floor(s/60); const sec=Math.floor(s%60); return m+':'+String(sec).padStart(2,'0'); }
+
+function syncPlayBtn(id){
+  const btn = document.querySelector(`.tbtn.play[data-deck="${id}"]`);
+  if(decks[id].playing){ btn.classList.add('on'); btn.firstChild.textContent='❚❚'; }
+  else { btn.classList.remove('on'); btn.firstChild.textContent='▶'; }
+}
+function refreshCuePads(id){
+  document.querySelectorAll(`.cues[data-deck="${id}"] .cue-pad`).forEach(p=>{
+    const i=+p.dataset.cue;
+    p.classList.toggle('set', decks[id].hotcues[i]!=null);
+    p.classList.toggle(id, decks[id].hotcues[i]!=null);
+  });
+}
+function updateDeckBpmDisplay(id){
+  const d = decks[id];
+  const el = document.getElementById('bpm'+id);
+  if(d.baseBpm){ el.textContent = (d.baseBpm*d.rate).toFixed(1); }
+}
+
+/* file loading */
+async function loadFile(id, file){
+  if(!file) return;
+  toast('Ανάλυση '+file.name+'…');
+  const buf = await file.arrayBuffer();
+  AC.decodeAudioData(buf.slice(0), (audioBuf)=>{
+    decks[id].load(audioBuf, file.name);
+    toast('DECK '+id+': '+file.name);
+  }, ()=> toast('Σφάλμα: μη υποστηριζόμενο αρχείο'));
+}
+document.getElementById('fileA').onchange = e=> loadFile('A', e.target.files[0]);
+document.getElementById('fileB').onchange = e=> loadFile('B', e.target.files[0]);
+
+/* transport buttons */
+document.querySelectorAll('.tbtn').forEach(b=>{
+  b.onclick=()=>{
+    const id=b.dataset.deck, act=b.dataset.act, d=decks[id];
+    if(!d.buffer){ toast('Φόρτωσε κομμάτι στο DECK '+id); return; }
+    if(act==='play') d.toggle();
+    else if(act==='cue') d.playing ? d.setCue() : d.gotoCue();
+    else if(act==='reset') d.reset();
+  };
+});
+
+/* pitch */
+['A','B'].forEach(id=>{
+  const sl = document.getElementById('pitch'+id);
+  sl.oninput = ()=>{
+    const v=parseFloat(sl.value);
+    decks[id].setRate(v);
+    document.getElementById('pitchval'+id).textContent = (v>=0?'+':'')+v.toFixed(1);
+  };
+});
+
+/* mixer knobs */
+document.querySelectorAll('[data-fx]').forEach(inp=>{
+  inp.oninput=()=>{
+    const id=inp.dataset.deck, fx=inp.dataset.fx, v=parseFloat(inp.value), d=decks[id];
+    if(fx==='gain') d.trim.gain.value=v;
+    else if(fx==='hi') d.hi.gain.value=v;
+    else if(fx==='mid') d.mid.gain.value=v;
+    else if(fx==='lo') d.lo.gain.value=v;
+    else if(fx==='vol') d.vol.gain.value=v;
+    else if(fx==='filter'){
+      if(Math.abs(v)<0.03){ d.filter.type='allpass'; }
+      else if(v>0){ d.filter.type='highpass'; d.filter.frequency.value=mapExp(v,20,12000); }
+      else { d.filter.type='lowpass'; d.filter.frequency.value=mapExp(1+v,200,18000); }
+    }
+  };
+});
+function mapExp(t,min,max){ return min*Math.pow(max/min, Math.max(0,Math.min(1,t))); }
+
+/* FX sends (reverb / echo / flanger) */
+document.querySelectorAll('[data-fxfx]').forEach(inp=>{
+  inp.oninput=()=>{
+    const d=decks[inp.dataset.deck], fx=inp.dataset.fxfx, v=parseFloat(inp.value);
+    if(fx==='reverb') d.reverbWet.gain.value=v;
+    else if(fx==='echo') d.echoWet.gain.value=v*0.9;
+    else if(fx==='flanger') d.flangerWet.gain.value=v*0.8;
+  };
+});
+
+/* crossfader (equal-power) */
+const xf = document.getElementById('xfader');
+function applyXfader(){
+  const x=parseFloat(xf.value);
+  decks.A.xf.gain.value = Math.cos(x*Math.PI/2);
+  decks.B.xf.gain.value = Math.cos((1-x)*Math.PI/2);
+}
+xf.oninput=applyXfader; applyXfader();
+
+/* master */
+document.getElementById('master').oninput=e=> master.gain.value=parseFloat(e.target.value);
+
+/* hot cues: click=set/jump, right-click=clear */
+document.querySelectorAll('.cue-pad').forEach(p=>{
+  const id=p.closest('.cues').dataset.deck, i=+p.dataset.cue;
+  p.onclick=()=>{ if(decks[id].buffer) decks[id].setHotcue(i); };
+  p.oncontextmenu=(e)=>{ e.preventDefault(); decks[id].clearHotcue(i); };
+});
+
+/* loops */
+document.querySelectorAll('.loop-pad').forEach(p=>{
+  const id=p.closest('.loops').dataset.deck, beats=+p.dataset.beats;
+  p.onclick=()=>{
+    const d=decks[id]; if(!d.buffer) return;
+    const active = p.classList.contains('on');
+    document.querySelectorAll(`.loops[data-deck="${id}"] .loop-pad`).forEach(x=>x.classList.remove('on'));
+    if(active){ d.clearLoop(); }
+    else { p.classList.add('on'); d.setLoop(beats); }
+  };
+});
+
+/* waveform seek by click */
+document.querySelectorAll('.wave-wrap').forEach(w=>{
+  w.onclick=(e)=>{
+    const id=w.dataset.deck, d=decks[id]; if(!d.buffer) return;
+    const r=w.getBoundingClientRect();
+    d.seek(((e.clientX-r.left)/r.width)*d.duration);
+  };
+});
+
+/* vinyl scratch/nudge (+ slip mode) */
+document.querySelectorAll('.vinyl').forEach(vinyl=>{
+  const id=vinyl.dataset.deck; let dragging=false, lastAngle=0, slipAnchor=0, slipClock=0, slipActive=false;
+  const getAngle=(e)=>{ const r=vinyl.getBoundingClientRect(); return Math.atan2(e.clientY-(r.top+r.height/2), e.clientX-(r.left+r.width/2)); };
+  const down=(e)=>{ const d=decks[id]; dragging=true; lastAngle=getAngle(e.touches?e.touches[0]:e); vinyl.style.cursor='grabbing';
+    if(d.slip && d.playing){ slipActive=true; slipAnchor=d.position; slipClock=AC.currentTime; } };
+  const move=(e)=>{ if(!dragging)return; const ev=e.touches?e.touches[0]:e; const a=getAngle(ev);
+    let da=a-lastAngle; if(da>Math.PI)da-=2*Math.PI; if(da<-Math.PI)da+=2*Math.PI;
+    lastAngle=a; decks[id].nudge(da*0.28);
+    vinyl.style.transform=`rotate(${a}rad)`; e.preventDefault(); };
+  const up=()=>{ if(!dragging) return; dragging=false; vinyl.style.cursor='grab';
+    if(slipActive){ // επανέφερε το timeline εκεί που «θα ήταν» χωρίς το scratch
+      const d=decks[id]; const virt=slipAnchor+(AC.currentTime-slipClock)*d.rate;
+      slipActive=false; d.seek(virt); toast('SLIP '+id+' → επαναφορά ροής');
+    } };
+  vinyl.addEventListener('mousedown',down); window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  vinyl.addEventListener('touchstart',down,{passive:false}); vinyl.addEventListener('touchmove',move,{passive:false}); vinyl.addEventListener('touchend',up);
+});
+
+/* SLIP toggle */
+document.querySelectorAll('.slip-btn').forEach(b=>{
+  b.onclick=()=>{ const d=decks[b.dataset.deck]; d.slip=!d.slip; b.classList.toggle('on',d.slip); toast('SLIP '+b.dataset.deck+' '+(d.slip?'ON':'OFF')); };
+});
+/* PITCH-BEND (hold) */
+document.querySelectorAll('.bend-btn').forEach(b=>{
+  const id=b.dataset.deck, dir=parseInt(b.dataset.bend);
+  const start=(e)=>{ e.preventDefault(); decks[id].bendStart(dir); b.classList.add('on'); };
+  const end=()=>{ decks[id].bendEnd(); b.classList.remove('on'); };
+  b.addEventListener('mousedown',start); b.addEventListener('mouseup',end); b.addEventListener('mouseleave',end);
+  b.addEventListener('touchstart',start,{passive:false}); b.addEventListener('touchend',end);
+});
+
+/* SYNC BPM: match target deck to reference deck */
+function syncDeck(target, ref){
+  const t=decks[target], r=decks[ref];
+  if(!t.baseBpm || !r.baseBpm) return false;
+  const targetBpm = r.baseBpm*r.rate;
+  let pct = (targetBpm/t.baseBpm - 1)*100;
+  pct=Math.max(-8,Math.min(8,pct));
+  document.getElementById('pitch'+target).value=pct;
+  t.setRate(pct);
+  document.getElementById('pitchval'+target).textContent=(pct>=0?'+':'')+pct.toFixed(1);
+  return true;
+}
+document.getElementById('syncBtn').onclick=()=>{
+  if(syncDeck('B','A')) toast('SYNC: B → '+(decks.B.baseBpm*decks.B.rate).toFixed(1)+' BPM');
+  else toast('Χρειάζονται 2 κομμάτια με BPM');
+};
+
+/* ---------- AUTO-MIX: αυτόματο πέρασμα deck→deck με sync ---------- */
+const automixBanner=document.getElementById('automixBanner');
+let xfAnim=null;
+function animateXfader(targetVal, ms){
+  if(xfAnim) cancelAnimationFrame(xfAnim);
+  const start=parseFloat(xf.value), t0=performance.now();
+  (function step(now){
+    const k=Math.min(1,(now-t0)/ms);
+    const e=k<.5 ? 2*k*k : 1-Math.pow(-2*k+2,2)/2; // easeInOut
+    xf.value=start+(targetVal-start)*e; applyXfader();
+    if(k<1) xfAnim=requestAnimationFrame(step); else xfAnim=null;
+  })(t0);
+}
+document.getElementById('automixBtn').onclick=autoTransition;
+function autoTransition(){
+  const aP=decks.A.playing, bP=decks.B.playing;
+  let from,to;
+  if(aP&&!bP){from='A';to='B';}
+  else if(bP&&!aP){from='B';to='A';}
+  else if(aP&&bP){ from=(parseFloat(xf.value)<0.5)?'A':'B'; to=from==='A'?'B':'A'; }
+  else { toast('Ξεκίνα ένα deck για auto-mix'); return; }
+  if(!decks[to].buffer){ toast('Φόρτωσε κομμάτι στο DECK '+to); return; }
+  syncDeck(to, from);
+  decks[to].seek(decks[to].cuePoint||0);
+  decks[to].play();
+  const dur=8000;
+  animateXfader(to==='B'?1:0, dur);
+  automixBanner.classList.add('on');
+  automixBanner.innerHTML=`🤖 <b>AUTO-MIX σε εξέλιξη:</b> ${from} → ${to} · ομαλό πέρασμα 8 δευτ. με BPM sync…`;
+  clearTimeout(autoTransition._t);
+  autoTransition._t=setTimeout(()=>automixBanner.classList.remove('on'), dur+500);
+  toast('AUTO-MIX: '+from+' → '+to);
+}
+
+/* microphone */
+let micNode=null;
+document.getElementById('micBtn').onclick=async ()=>{
+  const btn=document.getElementById('micBtn');
+  if(micNode){ micNode.disconnect(); micNode=null; btn.classList.remove('active'); toast('Μικρόφωνο OFF'); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false}});
+    micNode=AC.createMediaStreamSource(stream); micNode.connect(master);
+    btn.classList.add('active'); toast('Μικρόφωνο ON');
+  }catch(e){ toast('Δεν δόθηκε πρόσβαση στο μικρόφωνο'); }
+};
+
+/* recording */
+let recorder=null, chunks=[];
+document.getElementById('recBtn').onclick=()=>{
+  const btn=document.getElementById('recBtn');
+  if(recorder && recorder.state==='recording'){
+    recorder.stop(); btn.classList.remove('active'); btn.textContent='⏺ Εγγραφή'; return;
+  }
+  chunks=[];
+  recorder=new MediaRecorder(recDest.stream);
+  recorder.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+  recorder.onstop=()=>{
+    const blob=new Blob(chunks,{type:'audio/webm'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='djpro-mix-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.webm';
+    a.click(); URL.revokeObjectURL(url);
+    toast('Το mix αποθηκεύτηκε');
+  };
+  recorder.start(); btn.classList.add('active'); btn.textContent='⏹ Στοπ εγγραφής';
+  toast('Ξεκίνησε εγγραφή του master');
+};
+
+/* keyboard */
+window.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.isContentEditable) return;
+  if(keyboardPianoOn){ instKeyDown(e); return; }   // πληκτρολόγιο→όργανο (DJ shortcuts ανενεργά)
+  const k=e.key.toLowerCase();
+  if(k==='q'){ decks.A.buffer&&decks.A.toggle(); }
+  else if(k==='p'){ decks.B.buffer&&decks.B.toggle(); }
+  else if(k==='a'){ decks.A.playing?decks.A.setCue():decks.A.gotoCue(); }
+  else if(k==='l'){ decks.B.playing?decks.B.setCue():decks.B.gotoCue(); }
+  else if(k==='z'){ bump('A',-0.5); } else if(k==='x'){ bump('A',0.5); }
+  else if(k===','){ bump('B',-0.5); } else if(k==='.'){ bump('B',0.5); }
+  else if(e.key==='ArrowLeft'){ xf.value=Math.max(0,+xf.value-0.05); applyXfader(); }
+  else if(e.key==='ArrowRight'){ xf.value=Math.min(1,+xf.value+0.05); applyXfader(); }
+  else if(k==='m'){ autoTransition(); }
+  else if(k>='1' && k<='8'){ playSample(+k-1); }
+  else if(e.code==='Space'){ e.preventDefault(); const anyPlay=decks.A.playing||decks.B.playing;
+    ['A','B'].forEach(id=>{ if(decks[id].buffer){ anyPlay?decks[id].pause():decks[id].play(); } }); }
+});
+function bump(id,delta){
+  const sl=document.getElementById('pitch'+id);
+  sl.value=Math.max(-8,Math.min(8,+sl.value+delta));
+  decks[id].setRate(+sl.value);
+  document.getElementById('pitchval'+id).textContent=(+sl.value>=0?'+':'')+(+sl.value).toFixed(1);
+}
+
+document.getElementById('helpBtn').onclick=()=>{
+  document.getElementById('hint').scrollIntoView({behavior:'smooth'});
+};
+
+/* ============================================================
+   SAMPLER — συνθετικά dj sfx (offline, χωρίς αρχεία) + custom
+   ============================================================ */
+const samplerGain = AC.createGain(); samplerGain.gain.value=0.9; samplerGain.connect(master);
+let samplerOn=true;
+function noiseBuffer(sec){
+  const b=AC.createBuffer(1, AC.sampleRate*sec, AC.sampleRate);
+  const d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  return b;
+}
+const SAMPLES=[
+  {name:'Air Horn', emo:'📯', fn:(t)=>{
+    const g=AC.createGain(); g.connect(samplerGain); g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.5,t+.02); g.gain.setValueAtTime(.5,t+.6);
+    g.gain.linearRampToValueAtTime(0,t+.8);
+    [220,277,330].forEach(f=>{ const o=AC.createOscillator(); o.type='sawtooth';
+      o.frequency.setValueAtTime(f*.98,t); o.frequency.linearRampToValueAtTime(f,t+.05);
+      o.connect(g); o.start(t); o.stop(t+.8); });
+  }},
+  {name:'Siren', emo:'🚨', fn:(t)=>{
+    const o=AC.createOscillator(); o.type='sawtooth'; const g=AC.createGain();
+    g.gain.value=.28; o.connect(g); g.connect(samplerGain);
+    for(let i=0;i<4;i++){ o.frequency.setValueAtTime(600,t+i*.4); o.frequency.linearRampToValueAtTime(1100,t+i*.4+.2);
+      o.frequency.linearRampToValueAtTime(600,t+i*.4+.4); }
+    g.gain.setValueAtTime(.28,t+1.5); g.gain.linearRampToValueAtTime(0,t+1.6);
+    o.start(t); o.stop(t+1.6);
+  }},
+  {name:'Laser', emo:'🔫', fn:(t)=>{
+    const o=AC.createOscillator(); o.type='square'; const g=AC.createGain(); g.gain.value=.3;
+    o.frequency.setValueAtTime(1800,t); o.frequency.exponentialRampToValueAtTime(120,t+.35);
+    g.gain.setValueAtTime(.3,t+.3); g.gain.linearRampToValueAtTime(0,t+.4);
+    o.connect(g); g.connect(samplerGain); o.start(t); o.stop(t+.4);
+  }},
+  {name:'Riser', emo:'🔼', fn:(t)=>{
+    const src=AC.createBufferSource(); src.buffer=noiseBuffer(2);
+    const f=AC.createBiquadFilter(); f.type='bandpass'; f.Q.value=6;
+    f.frequency.setValueAtTime(300,t); f.frequency.exponentialRampToValueAtTime(6000,t+2);
+    const g=AC.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.4,t+2);
+    g.gain.linearRampToValueAtTime(0,t+2.05);
+    src.connect(f); f.connect(g); g.connect(samplerGain); src.start(t); src.stop(t+2.1);
+  }},
+  {name:'Kick', emo:'🥁', fn:(t)=>{
+    const o=AC.createOscillator(); const g=AC.createGain();
+    o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(45,t+.12);
+    g.gain.setValueAtTime(.9,t); g.gain.exponentialRampToValueAtTime(.001,t+.3);
+    o.connect(g); g.connect(samplerGain); o.start(t); o.stop(t+.3);
+  }},
+  {name:'Clap', emo:'👏', fn:(t)=>{
+    const src=AC.createBufferSource(); src.buffer=noiseBuffer(.3);
+    const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=1.2;
+    const g=AC.createGain(); g.gain.setValueAtTime(.6,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
+    src.connect(f); f.connect(g); g.connect(samplerGain); src.start(t); src.stop(t+.25);
+  }},
+  {name:'Vinyl Stop', emo:'⏹', fn:(t)=>{
+    const o=AC.createOscillator(); o.type='sawtooth'; const g=AC.createGain(); g.gain.value=.3;
+    o.frequency.setValueAtTime(400,t); o.frequency.exponentialRampToValueAtTime(30,t+.7);
+    g.gain.setValueAtTime(.3,t+.5); g.gain.linearRampToValueAtTime(0,t+.75);
+    o.connect(g); g.connect(samplerGain); o.start(t); o.stop(t+.75);
+  }},
+  {name:'Rewind', emo:'⏪', fn:(t)=>{
+    const src=AC.createBufferSource(); src.buffer=noiseBuffer(.6); src.playbackRate.setValueAtTime(2.2,t);
+    src.playbackRate.exponentialRampToValueAtTime(.4,t+.5);
+    const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=800;
+    const g=AC.createGain(); g.gain.setValueAtTime(.4,t); g.gain.exponentialRampToValueAtTime(.001,t+.5);
+    src.connect(f); f.connect(g); g.connect(samplerGain); src.start(t); src.stop(t+.55);
+  }}
+];
+const customSamples={}; // index -> AudioBuffer
+function playSample(i){
+  if(!samplerOn) return;
+  if(AC.state==='suspended') AC.resume();
+  const t=AC.currentTime+0.01;
+  if(customSamples[i]){
+    const s=AC.createBufferSource(); s.buffer=customSamples[i]; s.connect(samplerGain); s.start(t);
+  } else { SAMPLES[i].fn(t); }
+  const pad=document.querySelector(`.spad[data-i="${i}"]`);
+  if(pad){ pad.classList.add('hit'); setTimeout(()=>pad.classList.remove('hit'),120); }
+}
+const sGrid=document.getElementById('samplerGrid');
+let sampleLoadTarget=null;
+SAMPLES.forEach((s,i)=>{
+  const pad=document.createElement('div'); pad.className='spad'; pad.dataset.i=i;
+  pad.innerHTML=`<span class="emo">${s.emo}</span>${s.name}`;
+  pad.onclick=()=>playSample(i);
+  pad.oncontextmenu=(e)=>{ e.preventDefault(); sampleLoadTarget=i; document.getElementById('sampleFile').click(); };
+  sGrid.appendChild(pad);
+});
+document.getElementById('sampleFile').onchange=async e=>{
+  const f=e.target.files[0]; if(!f||sampleLoadTarget==null) return;
+  const buf=await f.arrayBuffer();
+  AC.decodeAudioData(buf.slice(0), b=>{
+    customSamples[sampleLoadTarget]=b;
+    const pad=document.querySelector(`.spad[data-i="${sampleLoadTarget}"]`);
+    pad.innerHTML=`<span class="emo">🎵</span>${f.name.slice(0,10)}`;
+    toast('Pad '+(sampleLoadTarget+1)+': '+f.name); sampleLoadTarget=null;
+  }, ()=>toast('Μη υποστηριζόμενος ήχος'));
+};
+document.getElementById('samplerToMaster').onclick=function(){
+  samplerOn=!samplerOn;
+  this.textContent = samplerOn ? 'Έξοδος: MASTER ✓' : 'Sampler: ΣΙΓΗ';
+  this.classList.toggle('active', !samplerOn);
+};
+
+/* ============================================================
+   SOUNDBOARD — meme-style συνθετικά εφέ + custom (IndexedDB)
+   ============================================================ */
+const sbGain=AC.createGain(); sbGain.gain.value=0.9; sbGain.connect(master);
+const sbReverb=AC.createConvolver(); sbReverb.buffer=makeIR(2.2,2.0);
+const sbRevGain=AC.createGain(); sbRevGain.gain.value=0; sbRevGain.connect(master); sbReverb.connect(sbRevGain);
+function osc(type,f,t,dur,g,dest){ const o=AC.createOscillator(),gn=AC.createGain(); o.type=type;
+  o.frequency.setValueAtTime(f,t); gn.gain.setValueAtTime(g,t); gn.gain.exponentialRampToValueAtTime(.0008,t+dur);
+  o.connect(gn); gn.connect(dest||sbGain); o.start(t); o.stop(t+dur); return o; }
+function noise(dur){ const b=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate); const d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; const s=AC.createBufferSource(); s.buffer=b; return s; }
+const SB=[
+  {name:'Vine Boom', emo:'💥', fn:(t)=>{ const o=AC.createOscillator(),g=AC.createGain();
+    o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(38,t+.5);
+    g.gain.setValueAtTime(1,t); g.gain.exponentialRampToValueAtTime(.001,t+1.1);
+    o.connect(g); g.connect(sbGain); g.connect(sbReverb); o.start(t); o.stop(t+1.2); }},
+  {name:'Buzzer', emo:'🚫', fn:(t)=>{ osc('square',110,t,.7,.35); osc('square',112,t,.7,.3); }},
+  {name:'Ding', emo:'✅', fn:(t)=>{ osc('sine',1318,t,.5,.4); osc('sine',1975,t,.5,.2); }},
+  {name:'Correct', emo:'🎉', fn:(t)=>{ osc('square',523,t,.12,.3); osc('square',784,t+.12,.25,.3); osc('square',1046,t+.24,.4,.3); }},
+  {name:'Wrong', emo:'❌', fn:(t)=>{ osc('sawtooth',300,t,.2,.3); osc('sawtooth',200,t+.2,.4,.3); }},
+  {name:'Sad Trombone', emo:'🎺', fn:(t)=>{ [294,277,262,247].forEach((f,i)=>{ const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(f*1.06,t+i*.32); o.frequency.linearRampToValueAtTime(f,t+i*.32+.28);
+    g.gain.setValueAtTime(.3,t+i*.32); g.gain.exponentialRampToValueAtTime(.001,t+i*.32+.34);
+    const flt=AC.createBiquadFilter(); flt.type='lowpass'; flt.frequency.value=1200;
+    o.connect(flt); flt.connect(g); g.connect(sbGain); o.start(t+i*.32); o.stop(t+i*.32+.34); }); }},
+  {name:'Applause', emo:'👏', fn:(t)=>{ const s=noise(2.2),f=AC.createBiquadFilter(),g=AC.createGain();
+    f.type='bandpass'; f.frequency.value=2000; f.Q.value=.6;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.5,t+.3); g.gain.setValueAtTime(.5,t+1.4);
+    g.gain.linearRampToValueAtTime(0,t+2.2); s.connect(f); f.connect(g); g.connect(sbGain); s.start(t); s.stop(t+2.2); }},
+  {name:'Drumroll', emo:'🥁', fn:(t)=>{ for(let i=0;i<28;i++){ const s=noise(.05),f=AC.createBiquadFilter(),g=AC.createGain();
+    f.type='bandpass'; f.frequency.value=250; g.gain.setValueAtTime(.4,t+i*.05); g.gain.exponentialRampToValueAtTime(.001,t+i*.05+.05);
+    s.connect(f); f.connect(g); g.connect(sbGain); s.start(t+i*.05); s.stop(t+i*.05+.05); }
+    const c=noise(.6),cf=AC.createBiquadFilter(),cg=AC.createGain(); cf.type='highpass'; cf.frequency.value=6000;
+    cg.gain.setValueAtTime(.4,t+1.4); cg.gain.exponentialRampToValueAtTime(.001,t+2); c.connect(cf); cf.connect(cg); cg.connect(sbGain); c.start(t+1.4); c.stop(t+2); }},
+  {name:'Record Scratch', emo:'💿', fn:(t)=>{ const s=noise(.5); s.playbackRate.setValueAtTime(1.6,t);
+    s.playbackRate.linearRampToValueAtTime(.3,t+.15); s.playbackRate.linearRampToValueAtTime(1.4,t+.3);
+    const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=4;
+    const g=AC.createGain(); g.gain.setValueAtTime(.5,t); g.gain.exponentialRampToValueAtTime(.001,t+.45);
+    s.connect(f); f.connect(g); g.connect(sbGain); s.start(t); s.stop(t+.45); }},
+  {name:'Explosion', emo:'💣', fn:(t)=>{ const s=noise(1.5),f=AC.createBiquadFilter(),g=AC.createGain();
+    f.type='lowpass'; f.frequency.setValueAtTime(2000,t); f.frequency.exponentialRampToValueAtTime(60,t+1.2);
+    g.gain.setValueAtTime(.9,t); g.gain.exponentialRampToValueAtTime(.001,t+1.4); s.connect(f); f.connect(g);
+    g.connect(sbGain); g.connect(sbReverb); s.start(t); s.stop(t+1.5); }},
+  {name:'Coin', emo:'🪙', fn:(t)=>{ osc('square',988,t,.08,.3); osc('square',1319,t+.08,.5,.3); }},
+  {name:'Punch', emo:'👊', fn:(t)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.setValueAtTime(180,t);
+    o.frequency.exponentialRampToValueAtTime(50,t+.1); g.gain.setValueAtTime(.9,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
+    o.connect(g); g.connect(sbGain); o.start(t); o.stop(t+.2); const s=noise(.1),ng=AC.createGain(); ng.gain.setValueAtTime(.4,t);
+    ng.gain.exponentialRampToValueAtTime(.001,t+.1); s.connect(ng); ng.connect(sbGain); s.start(t); s.stop(t+.1); }},
+  {name:'Bell', emo:'🔔', fn:(t)=>{ const carrier=AC.createOscillator(),mod=AC.createOscillator(),mg=AC.createGain(),g=AC.createGain();
+    carrier.frequency.value=800; mod.frequency.value=1120; mg.gain.value=600; mod.connect(mg); mg.connect(carrier.frequency);
+    g.gain.setValueAtTime(.4,t); g.gain.exponentialRampToValueAtTime(.001,t+1.4); carrier.connect(g); g.connect(sbGain);
+    carrier.start(t); mod.start(t); carrier.stop(t+1.4); mod.stop(t+1.4); }},
+  {name:'Crickets', emo:'🦗', fn:(t)=>{ for(let i=0;i<3;i++){ osc('sine',4200,t+i*.5,.06,.25); osc('sine',4200,t+i*.5+.09,.06,.25); } }},
+  {name:'Cash', emo:'💰', fn:(t)=>{ osc('square',1568,t,.1,.25); osc('square',2093,t+.05,.5,.25); const s=noise(.15),g=AC.createGain();
+    g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.001,t+.15); const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=4000;
+    s.connect(f); f.connect(g); g.connect(sbGain); s.start(t); s.stop(t+.15); }},
+];
+let sbCustom=[]; // {name, buffer}
+function playSB(entry){
+  if(AC.state==='suspended') AC.resume();
+  const t=AC.currentTime+0.01;
+  if(entry.buffer){ const s=AC.createBufferSource(); s.buffer=entry.buffer; s.connect(sbGain); s.start(t); }
+  else entry.fn(t);
+}
+function renderSoundboard(){
+  const grid=document.getElementById('soundboardGrid'); grid.innerHTML='';
+  SB.forEach((s)=>{
+    const pad=document.createElement('div'); pad.className='spad';
+    pad.innerHTML=`<span class="emo">${s.emo}</span>${s.name}`;
+    pad.onclick=()=>{ playSB(s); pad.classList.add('hit'); setTimeout(()=>pad.classList.remove('hit'),120); };
+    grid.appendChild(pad);
+  });
+  sbCustom.forEach((c,i)=>{
+    const pad=document.createElement('div'); pad.className='spad'; pad.style.borderColor='var(--accent)';
+    pad.innerHTML=`<span class="emo">🎵</span>${c.name.slice(0,12)}`;
+    pad.title='Αριστερό κλικ: αναπαραγωγή · Δεξί κλικ: διαγραφή';
+    pad.onclick=()=>{ playSB(c); pad.classList.add('hit'); setTimeout(()=>pad.classList.remove('hit'),120); };
+    pad.oncontextmenu=(e)=>{ e.preventDefault(); if(confirm('Διαγραφή ήχου «'+c.name+'»;')){ sbCustom.splice(i,1); saveSoundboard(); renderSoundboard(); } };
+    grid.appendChild(pad);
+  });
+}
+async function saveSoundboard(){ try{ await idbSet('sb', sbCustom.map(c=>({name:c.name, blob:c.blob}))); }catch(e){} }
+document.getElementById('addSoundBtn').onclick=()=>document.getElementById('soundFile').click();
+document.getElementById('soundFile').onchange=async e=>{
+  for(const f of e.target.files){
+    try{ const ab=await f.arrayBuffer(); const buffer=await AC.decodeAudioData(ab.slice(0));
+      sbCustom.push({name:f.name.replace(/\.[^.]+$/,''), buffer, blob:f}); }catch(err){ toast('Παράλειψη: '+f.name); }
+  }
+  await saveSoundboard(); renderSoundboard(); toast('Προστέθηκε στο soundboard');
+};
+(async()=>{ // restore custom sounds
+  try{ const saved=await idbGet('sb');
+    if(Array.isArray(saved)){ for(const it of saved){ try{ const ab=await it.blob.arrayBuffer();
+      const buffer=await AC.decodeAudioData(ab.slice(0)); sbCustom.push({name:it.name, buffer, blob:it.blob}); }catch(e){} } }
+  }catch(e){}
+  renderSoundboard();
+})();
+
+/* ============================================================
+   ΒΙΒΛΙΟΘΗΚΗ — File System Access API + IndexedDB persistence
+   ============================================================ */
+let library=[]; // {name, kind:'fs'|'file', handle?, file?}
+const AUDIO_EXT=/\.(mp3|wav|ogg|m4a|aac|flac|opus|webm)$/i;
+
+// tiny IndexedDB for the directory handle
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('djpro-lib',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbSet(k,v){ const db=await idb(); return new Promise(res=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=res; }); }
+async function idbGet(k){ const db=await idb(); return new Promise(res=>{ const tx=db.transaction('kv','readonly'); const rq=tx.objectStore('kv').get(k); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>res(null); }); }
+
+async function scanDir(dirHandle, prefix=''){
+  const out=[];
+  for await (const entry of dirHandle.values()){
+    if(entry.kind==='file' && AUDIO_EXT.test(entry.name)){
+      out.push({name:entry.name, kind:'fs', handle:entry, path:prefix});
+    } else if(entry.kind==='directory'){
+      try{ const sub=await scanDir(entry, prefix+entry.name+'/'); out.push(...sub); }catch(e){}
+    }
+  }
+  return out;
+}
+
+async function connectFolder(dirHandle, silent){
+  try{
+    if(dirHandle.requestPermission && !silent){
+      const p=await dirHandle.requestPermission({mode:'read'});
+      if(p!=='granted'){ toast('Δεν δόθηκε πρόσβαση στον φάκελο'); return; }
+    }
+    toast('Σάρωση φακέλου…');
+    const items=await scanDir(dirHandle);
+    library = items.sort((a,b)=>a.name.localeCompare(b.name));
+    renderLibrary();
+    await idbSet('folder', dirHandle);
+    toast('Βιβλιοθήκη: '+library.length+' κομμάτια');
+  }catch(e){ console.warn(e); toast('Σφάλμα σάρωσης φακέλου'); }
+}
+
+document.getElementById('addFolderBtn').onclick=async ()=>{
+  if(window.showDirectoryPicker){
+    try{ const h=await window.showDirectoryPicker(); connectFolder(h,false); }
+    catch(e){ /* cancelled */ }
+  } else {
+    // fallback: webkitdirectory
+    const inp=document.createElement('input'); inp.type='file'; inp.webkitdirectory=true; inp.multiple=true;
+    inp.onchange=()=>addFilesToLibrary(inp.files); inp.click();
+    toast('Ο browser δεν θυμάται φάκελο — γρήγορη φόρτωση αντ\' αυτού');
+  }
+};
+document.getElementById('addFilesBtn').onclick=()=>document.getElementById('libFiles').click();
+document.getElementById('libFiles').onchange=e=>addFilesToLibrary(e.target.files);
+function addFilesToLibrary(files){
+  [...files].forEach(f=>{ if(AUDIO_EXT.test(f.name)) library.push({name:f.name, kind:'file', file:f}); });
+  library.sort((a,b)=>a.name.localeCompare(b.name));
+  renderLibrary(); toast(library.length+' κομμάτια στη βιβλιοθήκη');
+}
+
+function renderLibrary(){
+  const list=document.getElementById('libList');
+  const q=(document.getElementById('libSearch').value||'').toLowerCase();
+  const items=library.filter(x=>x.name.toLowerCase().includes(q));
+  if(!items.length){
+    list.innerHTML='<div class="lib-empty">'+(library.length?'Κανένα αποτέλεσμα.':'Δεν υπάρχουν κομμάτια ακόμη.<br>Πάτησε <b>«Προσθήκη φακέλου»</b> ή <b>«Αρχεία»</b>.')+'</div>';
+    return;
+  }
+  list.innerHTML='';
+  items.forEach(it=>{
+    const gi=library.indexOf(it);
+    const row=document.createElement('div'); row.className='lib-item';
+    row.innerHTML=`<div class="ico">🎵</div>
+      <div class="meta"><div class="t">${it.name}</div><div class="s">${it.path||''}${it.kind==='fs'?'📁 φάκελος':'αρχείο'}</div></div>
+      <div class="to"><button class="a" title="Φόρτωση σε DECK A">A</button><button class="b" title="Φόρτωση σε DECK B">B</button></div>`;
+    row.querySelector('.a').onclick=()=>loadFromLibrary(gi,'A');
+    row.querySelector('.b').onclick=()=>loadFromLibrary(gi,'B');
+    list.appendChild(row);
+  });
+}
+document.getElementById('libSearch').oninput=renderLibrary;
+
+async function loadFromLibrary(i, deck){
+  const it=library[i]; if(!it) return;
+  let file=it.file;
+  if(it.kind==='fs'){ try{ file=await it.handle.getFile(); }catch(e){ toast('Δεν βρέθηκε το αρχείο'); return; } }
+  loadFile(deck, file);
+}
+
+// restore folder on load
+(async ()=>{
+  try{
+    const h=await idbGet('folder');
+    if(h && h.queryPermission){
+      const p=await h.queryPermission({mode:'read'});
+      if(p==='granted'){ connectFolder(h,true); }
+      else {
+        document.getElementById('libList').innerHTML='<div class="lib-empty">🔒 Έχεις αποθηκευμένο φάκελο.<br><button class="btn" id="reconnect" style="margin-top:10px">🔓 Επανασύνδεση φακέλου</button></div>';
+        document.getElementById('reconnect').onclick=()=>connectFolder(h,false);
+      }
+    }
+  }catch(e){}
+})();
+
+/* ============================================================
+   ΕΜΦΑΝΙΣΗ — θέματα, gradient φόντα, χρώμα εφέ (localStorage)
+   ============================================================ */
+const THEMES={
+  olympiacos:{'--page-bg':'radial-gradient(1200px 600px at 50% -10%,#191c24,#0a0b0e 60%)','--panel':'#14161c','--panel2':'#1b1e26','--line':'#2a2e3a','--txt':'#f2f4f8','--dim':'#8b93a7','--accent':'#e01e2b','--accent2':'#ff3a47','--a-deck':'#e01e2b','--b-deck':'#2b7de0','--glow':'0 0 14px rgba(224,30,43,.55)'},
+  night:{'--page-bg':'radial-gradient(1200px 600px at 50% -10%,#10141f,#05060a 60%)','--panel':'#0f1420','--panel2':'#151b2b','--line':'#232c40','--txt':'#eef2fb','--dim':'#8892ab','--accent':'#5b8cff','--accent2':'#7aa5ff','--a-deck':'#5b8cff','--b-deck':'#c05bff','--glow':'0 0 14px rgba(91,140,255,.55)'},
+  sepia:{'--page-bg':'radial-gradient(1200px 600px at 50% -10%,#2b2016,#140f08 60%)','--panel':'#211a12','--panel2':'#2b2318','--line':'#3d3324','--txt':'#f3e9d8','--dim':'#b09b7d','--accent':'#c8862a','--accent2':'#e0a445','--a-deck':'#c8862a','--b-deck':'#6a8ab0','--glow':'0 0 14px rgba(200,134,42,.55)'},
+  ocean:{'--page-bg':'radial-gradient(1200px 600px at 50% -10%,#0b2230,#04121a 60%)','--panel':'#0c1c26','--panel2':'#103042','--line':'#1c4256','--txt':'#e6f6fb','--dim':'#7fa8b8','--accent':'#12b5c9','--accent2':'#3fd6e6','--a-deck':'#12b5c9','--b-deck':'#3f7fe6','--glow':'0 0 14px rgba(18,181,201,.55)'}
+};
+const GRADIENTS=[
+  {name:'Προεπιλογή θέματος', css:''},
+  {name:'Μωβ νύχτα', css:'linear-gradient(150deg,#1a0b2e,#0a0b0e 60%)'},
+  {name:'Ηλιοβασίλεμα', css:'linear-gradient(160deg,#3a1220,#160a10 55%,#0a0b0e)'},
+  {name:'Βαθύς ωκεανός', css:'linear-gradient(160deg,#062b3a,#04121a)'},
+  {name:'Κόκκινο νέον', css:'radial-gradient(900px 500px at 50% -10%,#2a0e12,#0a0b0e 60%)'},
+  {name:'Ανθρακί', css:'linear-gradient(180deg,#1a1d24,#0a0b0e)'},
+  {name:'Μαγέντα', css:'linear-gradient(135deg,#2a0b24,#0a0b0e)'},
+  {name:'Σμαράγδι σκούρο', css:'linear-gradient(150deg,#0c2620,#07110d)'}
+];
+const ACCENTS=['#e01e2b','#ff5722','#ffb300','#12b5c9','#5b8cff','#a855f7','#ec4899','#f2f4f8'];
+const R=document.documentElement.style;
+let curTheme='olympiacos', curGrad='', curAccent=null;
+
+function applyTheme(name){
+  const t=THEMES[name]||THEMES.olympiacos; curTheme=name;
+  for(const k in t) R.setProperty(k, t[k]);
+  if(curGrad) R.setProperty('--page-bg', curGrad);
+  if(curAccent) applyAccent(curAccent, true);
+  document.querySelectorAll('[data-theme]').forEach(b=>b.classList.toggle('active', b.dataset.theme===name));
+  redrawWaves();
+}
+function applyGradient(css){
+  curGrad=css;
+  R.setProperty('--page-bg', css || THEMES[curTheme]['--page-bg']);
+  document.querySelectorAll('#gradSwatches .swatch').forEach(s=>s.classList.toggle('active', s.dataset.css===css));
+}
+function applyAccent(hex, silent){
+  curAccent=hex;
+  R.setProperty('--accent', hex);
+  R.setProperty('--accent2', hex);
+  R.setProperty('--a-deck', hex);
+  R.setProperty('--glow', '0 0 14px '+hex+'88');
+  const cc=document.getElementById('customColor'); if(cc) cc.value=/^#[0-9a-f]{6}$/i.test(hex)?hex:cc.value;
+  document.querySelectorAll('#colorSwatches .col-swatch').forEach(s=>s.classList.toggle('active', s.dataset.col===hex));
+  if(!silent) redrawWaves();
+}
+function redrawWaves(){ ['A','B'].forEach(id=>{ if(decks[id].buffer) drawWave(id,decks[id].buffer); }); }
+
+// build swatches
+const gs=document.getElementById('gradSwatches');
+GRADIENTS.forEach(g=>{
+  const b=document.createElement('button'); b.className='swatch'; b.dataset.css=g.css; b.title=g.name;
+  b.style.background = g.css || THEMES.olympiacos['--page-bg'];
+  b.onclick=()=>{ applyGradient(g.css); localStorage.setItem('djpro-grad', g.css); };
+  gs.appendChild(b);
+});
+const cs2=document.getElementById('colorSwatches');
+ACCENTS.forEach(c=>{
+  const b=document.createElement('button'); b.className='col-swatch'; b.dataset.col=c; b.title=c;
+  b.style.background=c;
+  b.onclick=()=>{ applyAccent(c); localStorage.setItem('djpro-accent', c); };
+  cs2.appendChild(b);
+});
+document.getElementById('customColor').oninput=e=>{ applyAccent(e.target.value); localStorage.setItem('djpro-accent', e.target.value); };
+document.querySelectorAll('[data-theme]').forEach(b=>{
+  b.onclick=()=>{ applyTheme(b.dataset.theme); localStorage.setItem('djpro-theme', b.dataset.theme); };
+});
+// console mode (αναλογική/ψηφιακή)
+function applyConsole(mode){
+  document.body.dataset.console=mode;
+  document.querySelectorAll('[data-console]').forEach(b=>b.classList.toggle('active', b.dataset.console===mode));
+}
+document.querySelectorAll('[data-console]').forEach(b=>{
+  b.onclick=()=>{ applyConsole(b.dataset.console); localStorage.setItem('djpro-console', b.dataset.console); };
+});
+applyConsole(localStorage.getItem('djpro-console')||'digital');
+
+// λειτουργία ήχου εξόδου (theater/surround/club…)
+const SOUND_PRESETS={
+  flat:{low:0,mid:0,high:0,verb:0,wide:0},
+  theater:{low:5,mid:1,high:2,verb:0.14,wide:0.35},
+  surround:{low:2,mid:0,high:3,verb:0.10,wide:0.65},
+  club:{low:7,mid:3,high:1,verb:0.05,wide:0.2},
+  bass:{low:9,mid:0,high:-1,verb:0,wide:0},
+  vocal:{low:-3,mid:4,high:2,verb:0.06,wide:0},
+  concert:{low:3,mid:1,high:2,verb:0.22,wide:0.45}
+};
+function applySound(key){
+  const p=SOUND_PRESETS[key]||SOUND_PRESETS.flat;
+  mLow.gain.value=p.low; mMid.gain.value=p.mid; mHigh.gain.value=p.high;
+  mVerbGain.gain.value=p.verb; mWideGain.gain.value=p.wide;
+}
+const soundSel=document.getElementById('soundMode');
+soundSel.onchange=()=>{ applySound(soundSel.value); localStorage.setItem('djpro-sound',soundSel.value); toast('Ήχος: '+soundSel.options[soundSel.selectedIndex].text); };
+(function(){ const s=localStorage.getItem('djpro-sound')||'flat'; soundSel.value=s; applySound(s); })();
+// restore
+(function(){
+  const st=localStorage.getItem('djpro-theme'); const sg=localStorage.getItem('djpro-grad'); const sa=localStorage.getItem('djpro-accent');
+  if(sa) curAccent=sa;
+  if(sg!=null) curGrad=sg;
+  applyTheme(st && THEMES[st] ? st : 'olympiacos');
+  if(sg!=null) applyGradient(sg);
+  if(sa) applyAccent(sa);
+})();
+
+/* ============================================================
+   PLAYLIST / ΙΣΤΟΡΙΚΟ — καταγραφή & εξαγωγή του set που έπαιξες
+   ============================================================ */
+const playHistory=[];
+function recordPlay(deck){
+  const name=deck.trackName||'—';
+  const last=playHistory[playHistory.length-1];
+  if(last && last.name===name && last.deck===deck.id) return; // αγνόησε συνεχόμενα ίδια (pause/resume/seek)
+  playHistory.push({ name, deck:deck.id, bpm:deck.bpm||null,
+    key:deck.key?deck.key.name:null, camelot:deck.key?deck.key.camelot:null, at:new Date() });
+  const hc=document.getElementById('histCount'); if(hc) hc.textContent=playHistory.length;
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function dlFile(content, filename, type){
+  const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportSet(){
+  if(!playHistory.length){ toast('Δεν έχει παίξει ακόμη κανένα κομμάτι'); return; }
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  // .m3u για media players
+  let m3u='#EXTM3U\n';
+  playHistory.forEach(h=>{ m3u+='#EXTINF:-1,'+h.name+'\n'+h.name+'\n'; });
+  dlFile(m3u, 'djpro-playlist-'+stamp+'.m3u', 'audio/x-mpegurl');
+  // .txt αναγνώσιμο με BPM/KEY/ώρα
+  let txt='DJ PRO — Playlist / Ιστορικό set\n'+new Date().toLocaleString('el-GR')+'\n'+('='.repeat(40))+'\n\n';
+  playHistory.forEach((h,i)=>{ const t=h.at;
+    txt+=(i+1)+'. '+h.name+'\n    ['+pad2(t.getHours())+':'+pad2(t.getMinutes())+'] Deck '+h.deck
+      +(h.bpm?' · BPM '+h.bpm.toFixed(1):'')+(h.camelot?' · KEY '+h.camelot+' ('+h.key+')':'')+'\n'; });
+  dlFile(txt, 'djpro-playlist-'+stamp+'.txt', 'text/plain;charset=utf-8');
+  toast('Εξήχθη playlist: '+playHistory.length+' κομμάτια (.m3u + .txt)');
+}
+document.getElementById('exportSetBtn').onclick=exportSet;
+
+/* ============================================================
+   LIVE INSTRUMENTS — πιάνο / κιθάρα / μπάσο / synth / ντραμς
+   ============================================================ */
+const instGain=AC.createGain(); instGain.gain.value=0.9; instGain.connect(master);
+document.getElementById('instVol').oninput=e=>instGain.gain.value=parseFloat(e.target.value);
+let curInst='piano', guitarType='acoustic';
+
+/* ---- πετάλια distortion ηλεκτρικής κιθάρας ---- */
+function makeDistCurve(k){ const n=8192,c=new Float32Array(n),deg=Math.PI/180; for(let i=0;i<n;i++){ const x=i*2/n-1; c[i]=(3+k)*x*20*deg/(Math.PI+k*Math.abs(x)); } return c; }
+const gtDist=AC.createWaveShaper(); gtDist.oversample='4x';
+const gtTone=AC.createBiquadFilter(); gtTone.type='lowpass'; gtTone.frequency.value=3000;
+const gtDistGain=AC.createGain(); gtDistGain.gain.value=0.6;
+gtDist.connect(gtTone); gtTone.connect(gtDistGain); gtDistGain.connect(instGain);
+let guitarDist='clean';
+const DIST_PRESETS={ clean:null, overdrive:{k:18,tone:3200,lvl:0.7}, distortion:{k:55,tone:2600,lvl:0.55}, fuzz:{k:130,tone:2000,lvl:0.5} };
+function setGuitarDist(name){ guitarDist=name; const p=DIST_PRESETS[name]; if(p){ gtDist.curve=makeDistCurve(p.k); gtTone.frequency.value=p.tone; gtDistGain.gain.value=p.lvl; } }
+
+/* ---- Karplus-Strong (ρεαλιστική τσιμπημένη χορδή για μπουζούκι/κιθάρα) ---- */
+function ksPluck(freq,t,dur,dest,bright){
+  const period=1/freq;
+  const delay=AC.createDelay(0.05); delay.delayTime.value=period;
+  const damp=AC.createBiquadFilter(); damp.type='lowpass'; damp.frequency.value=bright||3500;
+  const fb=AC.createGain(); fb.gain.value=0.986;
+  const out=AC.createGain(); out.gain.value=0.9;
+  delay.connect(damp); damp.connect(fb); fb.connect(delay); delay.connect(out); out.connect(dest||instGain);
+  const len=Math.max(2,Math.floor(AC.sampleRate*period*2));
+  const buf=AC.createBuffer(1,len,AC.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  const nb=AC.createBufferSource(); nb.buffer=buf; const ng=AC.createGain(); ng.gain.value=0.6; nb.connect(ng); ng.connect(delay); nb.start(t); nb.stop(t+period*2+0.02);
+  out.gain.setValueAtTime(0.9,t); out.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+  fb.gain.setValueAtTime(0.986,t+dur*0.7); fb.gain.linearRampToValueAtTime(0,t+dur);
+  setTimeout(()=>{ try{delay.disconnect();damp.disconnect();fb.disconnect();out.disconnect();ng.disconnect();}catch(e){} }, (dur+0.4)*1000);
+}
+function midiFreq(m){ return 440*Math.pow(2,(m-69)/12); }
+function playNote(freq, inst){
+  inst = inst || curInst;
+  if(AC.state==='suspended') AC.resume();
+  const t=AC.currentTime+0.005, g=AC.createGain(); g.connect(instGain);
+  const flt=AC.createBiquadFilter();
+  if(inst==='piano'){
+    flt.type='lowpass'; flt.frequency.value=4000;
+    const o1=AC.createOscillator(); o1.type='triangle'; o1.frequency.value=freq;
+    const o2=AC.createOscillator(); o2.type='sine'; o2.frequency.value=freq*2;
+    const g2=AC.createGain(); g2.gain.value=0.35; o2.connect(g2); g2.connect(flt); o1.connect(flt); flt.connect(g);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.5,t+.006); g.gain.exponentialRampToValueAtTime(.0008,t+1.6);
+    o1.start(t);o2.start(t);o1.stop(t+1.7);o2.stop(t+1.7);
+  } else if(inst==='guitar'){
+    // τύπος κιθάρας: classical(νάιλον)/acoustic(ατσάλι)/electroacoustic/electric
+    const GT={ classical:{w1:'triangle',w2:'sine',lp0:2400,lp1:1400,dec:1.3,det:1.002,q:0.5},
+               acoustic:{w1:'sawtooth',w2:'triangle',lp0:4200,lp1:1100,dec:1.35,det:1.004,q:0.6},
+               electroacoustic:{w1:'sawtooth',w2:'triangle',lp0:4800,lp1:1500,dec:1.5,det:1.004,q:1.2},
+               electric:{w1:'sawtooth',w2:'sawtooth',lp0:2800,lp1:1800,dec:1.8,det:1.008,q:5} }[guitarType]||{w1:'sawtooth',w2:'triangle',lp0:4000,lp1:1100,dec:1.3,det:1.004,q:0.6};
+    flt.type='lowpass'; flt.Q.value=GT.q; flt.frequency.setValueAtTime(GT.lp0,t); flt.frequency.exponentialRampToValueAtTime(GT.lp1,t+.6);
+    const o1=AC.createOscillator(); o1.type=GT.w1; o1.frequency.value=freq;
+    const o2=AC.createOscillator(); o2.type=GT.w2; o2.frequency.value=freq*GT.det;
+    o1.connect(flt); o2.connect(flt); flt.connect(g);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.5,t+.004); g.gain.exponentialRampToValueAtTime(.0008,t+GT.dec);
+    if(guitarType==='electric' && guitarDist!=='clean'){ try{g.disconnect(instGain);}catch(e){} g.connect(gtDist); } // πετάλι distortion
+    o1.start(t);o2.start(t);o1.stop(t+GT.dec+.1);o2.stop(t+GT.dec+.1);
+  } else if(inst==='bass'){
+    flt.type='lowpass'; flt.frequency.value=700;
+    const o1=AC.createOscillator(); o1.type='triangle'; o1.frequency.value=freq/2;
+    const o2=AC.createOscillator(); o2.type='sine'; o2.frequency.value=freq/2;
+    o1.connect(flt);o2.connect(flt);flt.connect(g);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.6,t+.01); g.gain.exponentialRampToValueAtTime(.0008,t+.9);
+    o1.start(t);o2.start(t);o1.stop(t+1);o2.stop(t+1);
+  } else if(inst==='clarinet'){ // κλαρίνο: κοίλος ξύλινος ήχος (μονά αρμονικά) + απαλό vibrato
+    flt.type='lowpass'; flt.frequency.value=2200;
+    const o1=AC.createOscillator(); o1.type='square'; o1.frequency.value=freq;
+    const o2=AC.createOscillator(); o2.type='sine'; o2.frequency.value=freq*3;
+    const g2=AC.createGain(); g2.gain.value=0.12; o2.connect(g2); g2.connect(flt); o1.connect(flt); flt.connect(g);
+    const lfo=AC.createOscillator(); lfo.frequency.value=5; const lg=AC.createGain(); lg.gain.value=4; lfo.connect(lg); lg.connect(o1.frequency); lfo.start(t);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.4,t+.06); g.gain.setValueAtTime(.4,t+.6); g.gain.exponentialRampToValueAtTime(.0008,t+1.2);
+    o1.start(t);o2.start(t);o1.stop(t+1.3);o2.stop(t+1.3);lfo.stop(t+1.3);
+  } else if(inst==='violin'){ // βιολί: δοξάρι (αργή προσβολή) + vibrato
+    flt.type='lowpass'; flt.frequency.value=3600; flt.Q.value=1;
+    const o1=AC.createOscillator(); o1.type='sawtooth'; o1.frequency.value=freq;
+    const o2=AC.createOscillator(); o2.type='sawtooth'; o2.frequency.value=freq*1.006;
+    o1.connect(flt);o2.connect(flt);flt.connect(g);
+    const lfo=AC.createOscillator(); lfo.frequency.value=6; const lg=AC.createGain(); lg.gain.value=6; lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency); lfo.start(t);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.45,t+.12); g.gain.setValueAtTime(.45,t+.85); g.gain.exponentialRampToValueAtTime(.0008,t+1.5);
+    o1.start(t);o2.start(t);o1.stop(t+1.6);o2.stop(t+1.6);lfo.stop(t+1.6);
+  } else if(inst==='bouzouki'){ // μπουζούκι: τσιμπημένη ΔΙΠΛΗ χορδή (Karplus-Strong) — ρεαλιστικό μεταλλικό
+    ksPluck(freq, t, 1.1, instGain, 6000);
+    ksPluck(freq*1.005, t+0.007, 1.1, instGain, 5500); // δεύτερη χορδή (course) → shimmer/χορωδία
+    return; // (δεν χρησιμοποιούμε το g)
+  } else { // synth
+    flt.type='lowpass'; flt.frequency.value=2600; flt.Q.value=6;
+    const o1=AC.createOscillator(); o1.type='sawtooth'; o1.frequency.value=freq;
+    const o2=AC.createOscillator(); o2.type='sawtooth'; o2.frequency.value=freq*1.01;
+    o1.connect(flt);o2.connect(flt);flt.connect(g);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.45,t+.02); g.gain.setValueAtTime(.45,t+.8); g.gain.exponentialRampToValueAtTime(.0008,t+1.3);
+    o1.start(t);o2.start(t);o1.stop(t+1.4);o2.stop(t+1.4);
+  }
+}
+// build FULL 88-key piano (A0..C8 = MIDI 21..108, 52 λευκά + 36 μαύρα)
+const NATNAME={0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'B'}, SHARP={0:1,2:1,5:1,7:1,9:1};
+const pianoWrap=document.getElementById('pianoWrap');
+function addWhiteKey(midi, label, withSharp){
+  const wk=document.createElement('div'); wk.className='pkey'; wk.dataset.freq=midiFreq(midi); wk.dataset.midi=midi;
+  wk.innerHTML='<span>'+label+'</span>';
+  const trig=e=>{ e.preventDefault(); playNote(parseFloat(wk.dataset.freq)); wk.classList.add('hit'); setTimeout(()=>wk.classList.remove('hit'),120); };
+  wk.addEventListener('mousedown',trig); wk.addEventListener('touchstart',trig,{passive:false});
+  if(withSharp){
+    const bk=document.createElement('div'); bk.className='pkey black'; bk.dataset.freq=midiFreq(midi+1); bk.dataset.midi=midi+1;
+    const bt=e=>{ e.preventDefault(); e.stopPropagation(); playNote(parseFloat(bk.dataset.freq)); bk.classList.add('hit'); setTimeout(()=>bk.classList.remove('hit'),120); };
+    bk.addEventListener('mousedown',bt); bk.addEventListener('touchstart',bt,{passive:false});
+    wk.appendChild(bk);
+  }
+  pianoWrap.appendChild(wk);
+}
+for(let midi=21; midi<=108; midi++){
+  const pc=midi%12;
+  if(NATNAME[pc]!==undefined){ // λευκό πλήκτρο
+    const oct=Math.floor(midi/12)-1;
+    const withSharp = SHARP[pc] && (midi+1)<=108;
+    addWhiteKey(midi, NATNAME[pc]+oct, !!withSharp);
+  }
+}
+// build drum pads (reuse synth helpers osc/noise from soundboard)
+const DRUMS=[
+  {name:'Kick', emo:'🥁', fn:(t)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.setValueAtTime(150,t);
+    o.frequency.exponentialRampToValueAtTime(45,t+.12); g.gain.setValueAtTime(1,t); g.gain.exponentialRampToValueAtTime(.001,t+.3);
+    o.connect(g); g.connect(instGain); o.start(t); o.stop(t+.3); }},
+  {name:'Snare', emo:'🎯', fn:(t)=>{ const s=noise(.2),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass'; f.frequency.value=1200;
+    g.gain.setValueAtTime(.7,t); g.gain.exponentialRampToValueAtTime(.001,t+.2); s.connect(f);f.connect(g);g.connect(instGain); s.start(t);s.stop(t+.2);
+    const o=AC.createOscillator(),og=AC.createGain(); o.frequency.value=180; og.gain.setValueAtTime(.4,t); og.gain.exponentialRampToValueAtTime(.001,t+.12); o.connect(og);og.connect(instGain);o.start(t);o.stop(t+.12); }},
+  {name:'Hi-Hat', emo:'🔺', fn:(t)=>{ const s=noise(.08),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass'; f.frequency.value=7000;
+    g.gain.setValueAtTime(.4,t); g.gain.exponentialRampToValueAtTime(.001,t+.06); s.connect(f);f.connect(g);g.connect(instGain); s.start(t);s.stop(t+.08); }},
+  {name:'Open Hat', emo:'🔷', fn:(t)=>{ const s=noise(.4),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass'; f.frequency.value=6000;
+    g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.001,t+.35); s.connect(f);f.connect(g);g.connect(instGain); s.start(t);s.stop(t+.4); }},
+  {name:'Clap', emo:'👏', fn:(t)=>{ const s=noise(.2),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=1.2;
+    g.gain.setValueAtTime(.6,t); g.gain.exponentialRampToValueAtTime(.001,t+.18); s.connect(f);f.connect(g);g.connect(instGain); s.start(t);s.stop(t+.2); }},
+  {name:'Tom', emo:'🛢', fn:(t)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.setValueAtTime(220,t);
+    o.frequency.exponentialRampToValueAtTime(90,t+.25); g.gain.setValueAtTime(.7,t); g.gain.exponentialRampToValueAtTime(.001,t+.3); o.connect(g);g.connect(instGain);o.start(t);o.stop(t+.3); }},
+  {name:'Crash', emo:'💥', fn:(t)=>{ const s=noise(1.2),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass'; f.frequency.value=5000;
+    g.gain.setValueAtTime(.4,t); g.gain.exponentialRampToValueAtTime(.001,t+1.1); s.connect(f);f.connect(g);g.connect(instGain); s.start(t);s.stop(t+1.2); }},
+  {name:'Ride', emo:'🔔', fn:(t)=>{ const s=noise(.6),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='bandpass'; f.frequency.value=4000; f.Q.value=2;
+    g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.5); s.connect(f);f.connect(g);g.connect(instGain); s.start(t);s.stop(t+.6); }},
+  {name:'Splash', emo:'💫', fn:(t)=>{ const s=noise(.5),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass'; f.frequency.value=8000;
+    g.gain.setValueAtTime(.35,t); g.gain.exponentialRampToValueAtTime(.001,t+.45); s.connect(f);f.connect(g);g.connect(instGain); s.start(t);s.stop(t+.5); }}
+];
+const drumWrap=document.getElementById('drumWrap');
+const drumByName={}; DRUMS.forEach(d=>drumByName[d.name]=d);
+function tom3d(cx,cy,r,drum,label,shell){ // 3D τύμπανο: σκιά + κέλυφος + κόκκινο δαχτυλίδι + δέρμα + highlight
+  return '<g class="dpart" data-drum="'+drum+'" data-key="">'
+    +'<ellipse cx="'+cx+'" cy="'+(cy+r*0.92)+'" rx="'+(r*0.96)+'" ry="'+(r*0.22)+'" fill="#000" opacity="0.45"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="url(#'+shell+')"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.84)+'" fill="none" stroke="var(--accent)" stroke-width="'+(r*0.14)+'"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.72)+'" fill="url(#headG)" stroke="#e9edf3" stroke-width="2"/>'
+    +'<ellipse cx="'+(cx-r*0.3)+'" cy="'+(cy-r*0.34)+'" rx="'+(r*0.32)+'" ry="'+(r*0.16)+'" fill="#fff" opacity="0.12"/>'
+    +'<text x="'+cx+'" y="'+(cy+4)+'" class="dlbl" fill="#fff">'+label+'</text></g>'; }
+function cym3d(cx,cy,rx,ry,drum,label){ // 3D πιατίνι: σκιά + gold + κόκκινο ring + grooves + bell
+  return '<g class="dpart" data-drum="'+drum+'">'
+    +'<ellipse cx="'+cx+'" cy="'+(cy+7)+'" rx="'+rx+'" ry="'+(ry*0.7)+'" fill="#000" opacity="0.35"/>'
+    +'<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="url(#goldG)" stroke="#8a6f14" stroke-width="1.5"/>'
+    +'<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx*0.82)+'" ry="'+(ry*0.82)+'" fill="none" stroke="var(--accent)" stroke-width="2.5" opacity="0.85"/>'
+    +'<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx*0.5)+'" ry="'+(ry*0.5)+'" fill="none" stroke="#a9861f" stroke-width="1" opacity="0.6"/>'
+    +'<ellipse cx="'+cx+'" cy="'+(cy-1)+'" rx="'+(rx*0.12)+'" ry="'+(ry*0.4)+'" fill="#fff3c0"/>'
+    +'<text x="'+cx+'" y="'+(cy+3)+'" class="dlbl" style="font-size:10px">'+label+'</text></g>'; }
+const KIT='<svg viewBox="0 0 540 310" class="drumkit" xmlns="http://www.w3.org/2000/svg">'
+  +'<defs>'
+  +'<radialGradient id="shellRed" cx="40%" cy="30%" r="80%"><stop offset="0" stop-color="#4a4f5a"/><stop offset="55%" stop-color="#20242c"/><stop offset="100%" stop-color="#0a0b0e"/></radialGradient>'
+  +'<radialGradient id="snareShell" cx="40%" cy="30%" r="80%"><stop offset="0" stop-color="#ffffff"/><stop offset="55%" stop-color="#c2c7d0"/><stop offset="100%" stop-color="#5a616b"/></radialGradient>'
+  +'<radialGradient id="headG" cx="42%" cy="34%" r="72%"><stop offset="0" stop-color="#33384300"/><stop offset="0" stop-color="#3a3f49"/><stop offset="70%" stop-color="#12151b"/><stop offset="100%" stop-color="#060709"/></radialGradient>'
+  +'<radialGradient id="goldG" cx="42%" cy="33%" r="75%"><stop offset="0" stop-color="#fff0b0"/><stop offset="45%" stop-color="#e0b84a"/><stop offset="100%" stop-color="#8a6f14"/></radialGradient>'
+  +'</defs>'
+  +'<line x1="78" y1="62" x2="92" y2="200" stroke="#666" stroke-width="3"/><line x1="330" y1="60" x2="320" y2="150" stroke="#666" stroke-width="3"/><line x1="450" y1="74" x2="455" y2="160" stroke="#666" stroke-width="3"/>'
+  +cym3d(80,62,54,14,'Crash','CRASH')
+  +cym3d(205,48,40,11,'Splash','SPLASH')
+  +cym3d(330,60,54,14,'Crash','CRASH')
+  +cym3d(455,74,60,16,'Ride','RIDE')
+  +'<g class="dpart" data-drum="Hi-Hat"><ellipse cx="500" cy="158" rx="42" ry="10" fill="url(#goldG)" stroke="#8a6f14" stroke-width="1.5"/><ellipse cx="500" cy="146" rx="42" ry="10" fill="url(#goldG)" stroke="#8a6f14" stroke-width="1.5" opacity="0.92"/><ellipse cx="500" cy="152" rx="34" ry="7" fill="none" stroke="var(--accent)" stroke-width="2" opacity="0.7"/><text x="500" y="176" class="dlbl" style="font-size:9px">CLOSE HH</text></g>'
+  +'<g class="dpart" data-drum="Open Hat"><ellipse cx="502" cy="232" rx="42" ry="10" fill="url(#goldG)" stroke="#8a6f14" stroke-width="1.5"/><ellipse cx="502" cy="232" rx="34" ry="7" fill="none" stroke="var(--accent)" stroke-width="2" opacity="0.7"/><text x="502" y="256" class="dlbl" style="font-size:9px">OPEN HH</text></g>'
+  +tom3d(300,255,58,'Kick','KICK','shellRed')
+  +tom3d(195,140,36,'Tom','HIGH','shellRed')
+  +tom3d(283,128,36,'Tom','MID','shellRed')
+  +tom3d(375,145,36,'Tom','LOW','shellRed')
+  +tom3d(95,205,44,'Tom','FLOOR','shellRed')
+  +tom3d(190,222,36,'Snare','SNARE','snareShell')
+  +'</svg>';
+drumWrap.innerHTML=KIT;
+function hitDrum(name,el){ if(AC.state==='suspended')AC.resume(); const d=drumByName[name]; if(d) d.fn(AC.currentTime+0.01);
+  if(el){ el.classList.add('hit'); setTimeout(()=>el.classList.remove('hit'),120); } }
+drumWrap.querySelectorAll('.dpart').forEach(g=>{ const trig=e=>{ e.preventDefault(); hitDrum(g.dataset.drum,g); };
+  g.addEventListener('mousedown',trig); g.addEventListener('touchstart',trig,{passive:false}); });
+const drumExtra=document.createElement('div'); drumExtra.className='drum-extra';
+drumExtra.innerHTML='<span class="kbd-hint">Πλήκτρα: A=Kick S=Snare D=HiHat F=OpenHat G/H/J=Toms K=Crash L=Ride ; =Splash Space=Kick · +</span>';
+[['Clap','👏']].forEach(([nm,em])=>{ const p=document.createElement('button'); p.className='btn'; p.innerHTML=em+' '+nm;
+  p.onclick=()=>hitDrum(nm,null); drumExtra.appendChild(p); });
+drumWrap.appendChild(drumExtra);
+/* ---- FRETBOARD (κιθάρα / μπάσο) ---- */
+const fretWrap=document.getElementById('fretWrap');
+const NNAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const TUNINGS={ guitar:[40,45,50,55,59,64], bass:[28,33,38,43], violin:[55,62,69,76], bouzouki:[48,53,57,62] }; // guitar EADGBE / bass EADG / violin G D A E / μπουζούκι C F A D (τετράχορδο)
+const FRETS=15; // πλήρης λαιμός (κύλιση οριζόντια)
+const FRET_MARKERS={3:1,5:1,7:1,9:1,12:2,15:1}; // 2=διπλή τελεία
+const CHORDS={ // MIDI για strum (κιθάρα)
+  'E':[40,47,52,56,59,64], 'A':[45,52,57,61,64,69], 'D':[50,57,62,66,74], 'G':[43,47,50,55,59,67],
+  'C':[48,52,55,60,64,72], 'Am':[45,52,57,60,64,69], 'Em':[40,47,52,55,59,64], 'Dm':[50,57,62,65,74] };
+let curChord=CHORDS['E'].slice(), curChordName='E';
+function strumChord(dir){ let notes=curChord.slice(); if(dir==='U') notes.reverse();
+  notes.forEach((m,i)=> setTimeout(()=>playNote(midiFreq(m)), i*26)); }
+// αυτόματοι ρυθμοί πένας (8 όγδοα): 1=down, 2=up, 0=σιωπή
+const STRUM_PATTERNS={
+  'Όλα κάτω (D D D D)':[1,0,1,0,1,0,1,0],
+  'Ποπ (D DU UDU)':[1,0,1,2,0,2,1,2],
+  'Λαϊκό (D D DUDU)':[1,0,1,0,1,2,1,2],
+  'Όγδοα (DUDUDUDU)':[1,2,1,2,1,2,1,2],
+  'Μπαλάντα (D  D DU)':[1,0,0,1,0,1,2,0]
+};
+/* ---- ΕΝΟΠΟΙΗΜΕΝΗ αυτόματη συνοδεία (όλα τα όργανα) ---- */
+let autoTimer=null, autoSlot=0, autoBpm=90, autoSyncBand=false, autoPat='Ποπ (D DU UDU)';
+let chordProg=[], progIdx=0;
+const PROG_PRESETS={ 'Ποπ: G D Em C':['G','D','Em','C'], 'Κλασικό: C G Am Dm':['C','G','Am','Dm'], 'Ροκ: E A D A':['E','A','D','A'], 'Λαϊκό: Am Dm E Am':['Am','Dm','E','Am'] };
+function effBpm(){ return (autoSyncBand && typeof bandBpm!=='undefined') ? bandBpm : autoBpm; }
+function syncChordBtns(){ document.querySelectorAll('#fretWrap .chord-btn').forEach(b=>b.classList.toggle('on', b.textContent===curChordName)); }
+const autoVoices=new Set(); // όργανα που παίζουν ΜΑΖΙ στη συνοδεία
+function playVoice(v,dir){
+  if(!curChord||!curChord.length) return;
+  if(v==='guitar'){ let notes=curChord.slice(); if(dir==='U')notes.reverse(); notes.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),'guitar'), i*26)); }
+  else if(v==='bass'){ playNote(midiFreq(curChord[0]),'bass'); } // (το playNote bass κατεβάζει οκτάβα)
+  else { if(dir==='U') curChord.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),v), i*16)); else curChord.forEach(m=>playNote(midiFreq(m),v)); }
+}
+function autoPlayChord(dir){
+  const voices = autoVoices.size ? [...autoVoices] : [curInst]; // αν κανένα δεν επιλέχθηκε → το τρέχον όργανο
+  voices.forEach(v=>playVoice(v,dir));
+}
+function autoLoop(){
+  const pat=STRUM_PATTERNS[autoPat];
+  if(chordProg.length && autoSlot%pat.length===0){ // νέα μπάρα → επόμενη συγχορδία
+    const nm=chordProg[progIdx%chordProg.length]; if(CHORDS[nm]){ curChord=CHORDS[nm].slice(); curChordName=nm; highlightProg(progIdx%chordProg.length); syncChordBtns(); }
+    progIdx++;
+  }
+  const v=pat[autoSlot%pat.length];
+  if(v===1) autoPlayChord('D'); else if(v===2) autoPlayChord('U');
+  autoSlot++;
+  autoTimer=setTimeout(autoLoop, (60/effBpm())/2*1000); // self-reschedule → ακολουθεί ζωντανά το BPM
+}
+function autoStart(){ if(AC.state==='suspended')AC.resume(); autoSlot=0; progIdx=0; autoLoop(); }
+function autoStop(){ clearTimeout(autoTimer); autoTimer=null; const b=document.getElementById('autoPlayBtn'); if(b){ b.textContent='▶ Αυτόματη συνοδεία'; b.classList.remove('active'); } }
+function autoStrumStop(){ autoStop(); } // alias (buildFret το καλεί στο rebuild)
+function highlightProg(i){ document.querySelectorAll('#progSeq .song-chip').forEach((c,j)=>c.classList.toggle('active',j===i)); }
+function renderProg(){
+  const box=document.getElementById('progSeq'); if(!box) return;
+  if(!chordProg.length){ box.innerHTML='<span class="song-empty">Πρόσθεσε συγχορδίες → παίζουν αυτόματα με τον ρυθμό, σε όποιο όργανο έχεις επιλέξει</span>'; return; }
+  box.innerHTML=''; chordProg.forEach((nm,i)=>{ const chip=document.createElement('div'); chip.className='song-chip';
+    chip.innerHTML='<span>'+nm+'</span> <span class="x">✕</span>'; chip.querySelector('.x').onclick=()=>{ chordProg.splice(i,1); renderProg(); }; box.appendChild(chip); });
+}
+function buildAutoAccomp(){
+  const box=document.getElementById('autoAccomp'); if(!box) return; box.innerHTML='';
+  const r1=document.createElement('div'); r1.className='strum-auto'; r1.innerHTML='<span class="kbd-hint">🎼 Αυτόματη συνοδεία:</span>';
+  const pSel=document.createElement('select'); pSel.className='sel'; Object.keys(STRUM_PATTERNS).forEach(k=>{ const o=document.createElement('option'); o.value=k;o.textContent=k; pSel.appendChild(o); }); pSel.value=autoPat; pSel.onchange=()=>autoPat=pSel.value;
+  const bpmL=document.createElement('label'); bpmL.className='song-bars'; bpmL.innerHTML='Ταχύτητα <input type="range" id="aBpm" min="50" max="180" value="'+autoBpm+'" style="width:110px"><b id="aBpmV">'+autoBpm+'</b>';
+  const sync=document.createElement('button'); sync.className='btn'; sync.id='autoSyncBtn'; sync.textContent='🔗 Sync Ορχήστρα: OFF';
+  sync.onclick=()=>{ autoSyncBand=!autoSyncBand; sync.textContent='🔗 Sync Ορχήστρα: '+(autoSyncBand?'ON':'OFF'); sync.classList.toggle('active',autoSyncBand); bpmL.style.opacity=autoSyncBand?'.4':'1'; toast(autoSyncBand?'Συνοδεία → BPM Ορχήστρας ('+bandBpm+')':'Συνοδεία → δικό της BPM'); };
+  const play=document.createElement('button'); play.className='btn'; play.id='autoPlayBtn'; play.textContent='▶ Αυτόματη συνοδεία';
+  play.onclick=()=>{ if(autoTimer){ autoStop(); } else { autoStart(); play.textContent='⏹ Στοπ'; play.classList.add('active'); } };
+  r1.appendChild(pSel); r1.appendChild(bpmL); r1.appendChild(sync); r1.appendChild(play); box.appendChild(r1);
+  bpmL.querySelector('#aBpm').oninput=e=>{ autoBpm=parseInt(e.target.value); bpmL.querySelector('#aBpmV').textContent=autoBpm; };
+  // ensemble: ποια όργανα παίζουν ΜΑΖΙ
+  const rv=document.createElement('div'); rv.className='strum-auto'; rv.innerHTML='<span class="kbd-hint">🎻 Παίζουν μαζί:</span>';
+  [['piano','🎹 Πιάνο'],['synth','🎛 Synth'],['guitar','🎸 Κιθάρα'],['bass','🎸 Μπάσο'],['clarinet','🎵 Κλαρίνο'],['violin','🎻 Βιολί'],['bouzouki','🪕 Μπουζούκι']].forEach(([v,l])=>{
+    const b=document.createElement('button'); b.className='chord-btn'+(autoVoices.has(v)?' on':''); b.style.padding='6px 10px'; b.textContent=l;
+    b.onclick=()=>{ if(autoVoices.has(v))autoVoices.delete(v); else autoVoices.add(v); b.classList.toggle('on'); }; rv.appendChild(b); });
+  const hint=document.createElement('span'); hint.className='kbd-hint'; hint.textContent='(κανένα = μόνο το τρέχον όργανο)'; rv.appendChild(hint);
+  box.appendChild(rv);
+  const r2=document.createElement('div'); r2.className='strum-auto'; r2.innerHTML='<span class="kbd-hint">🔁 Ακολουθία:</span>';
+  Object.keys(CHORDS).forEach(nm=>{ const b=document.createElement('button'); b.className='chord-btn'; b.style.padding='5px 9px'; b.textContent='＋'+nm; b.onclick=()=>{ chordProg.push(nm); renderProg(); }; r2.appendChild(b); });
+  const preSel=document.createElement('select'); preSel.className='sel'; preSel.innerHTML='<option value="">— έτοιμη ακολουθία —</option>'+Object.keys(PROG_PRESETS).map(k=>'<option value="'+k+'">'+k+'</option>').join('');
+  preSel.onchange=()=>{ if(PROG_PRESETS[preSel.value]){ chordProg=PROG_PRESETS[preSel.value].slice(); renderProg(); } };
+  r2.appendChild(preSel);
+  const clr=document.createElement('button'); clr.className='btn'; clr.textContent='🗑'; clr.onclick=()=>{ chordProg=[]; renderProg(); }; r2.appendChild(clr);
+  box.appendChild(r2);
+  const seq=document.createElement('div'); seq.className='song-seq'; seq.id='progSeq'; box.appendChild(seq); renderProg();
+}
+buildAutoAccomp();
+function bodySVG(inst){
+  const W=420,H=140;
+  let s='<svg class="body-bg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">'
+    +'<defs><radialGradient id="wood" cx="40%" cy="32%" r="78%"><stop offset="0" stop-color="#a06a34"/><stop offset="60%" stop-color="#6b4423"/><stop offset="100%" stop-color="#3a2510"/></radialGradient></defs>';
+  if(inst==='violin'){ // βιολί: λαιμός + κλειδί + σώμα «κλεψύδρα» + f-holes
+    s+='<rect x="18" y="63" width="150" height="14" rx="5" fill="#2a1c0d"/><circle cx="14" cy="70" r="12" fill="#2a1c0d"/>'
+      +'<path d="M170 70 C170 34 210 30 236 40 L236 100 C210 110 170 106 170 70 Z" fill="url(#wood)" stroke="#241608" stroke-width="2"/>'
+      +'<ellipse cx="330" cy="70" rx="70" ry="55" fill="url(#wood)" stroke="#241608" stroke-width="2"/>'
+      +'<ellipse cx="262" cy="70" rx="36" ry="34" fill="url(#wood)"/>'
+      +'<path d="M318 46 q-9 24 0 48 M316 58 h10 M316 82 h10" stroke="#160d05" stroke-width="3" fill="none"/>'
+      +'<path d="M348 46 q9 24 0 48 M342 58 h10 M342 82 h10" stroke="#160d05" stroke-width="3" fill="none"/>';
+  } else if(inst==='bouzouki'){ // μπουζούκι: μακρύς λαιμός + στρογγυλό «σκαφτό» σώμα + ροζέτα
+    s+='<rect x="18" y="63" width="210" height="14" rx="5" fill="#241608"/>'
+      +'<ellipse cx="330" cy="70" rx="78" ry="62" fill="url(#wood)" stroke="#241608" stroke-width="2"/>'
+      +'<ellipse cx="330" cy="70" rx="78" ry="62" fill="none" stroke="#c9a45a" stroke-width="1" opacity="0.4"/>'
+      +'<circle cx="318" cy="70" r="26" fill="#0a0b0e"/><circle cx="318" cy="70" r="26" fill="none" stroke="#c9a45a" stroke-width="3"/><circle cx="318" cy="70" r="18" fill="none" stroke="#c9a45a" stroke-width="1.5"/><circle cx="318" cy="70" r="10" fill="none" stroke="#c9a45a" stroke-width="1"/>';
+  } else if(inst==='bass'){ // μπάσο: solid body + pickups
+    s+='<rect x="18" y="63" width="215" height="14" rx="5" fill="#141821"/>'
+      +'<ellipse cx="330" cy="70" rx="76" ry="56" fill="#20242c" stroke="#0a0b0e" stroke-width="2"/>'
+      +'<rect x="298" y="50" width="14" height="40" rx="3" fill="#0a0b0e"/><rect x="342" y="50" width="14" height="40" rx="3" fill="#0a0b0e"/>';
+  } else { // κιθάρα (ακουστική «οκτάρι»)
+    s+='<rect x="18" y="63" width="190" height="14" rx="5" fill="#3a2510"/>'
+      +'<ellipse cx="292" cy="70" rx="50" ry="44" fill="url(#wood)" stroke="#241608" stroke-width="2"/>'
+      +'<ellipse cx="350" cy="70" rx="62" ry="54" fill="url(#wood)" stroke="#241608" stroke-width="2"/>'
+      +'<circle cx="318" cy="70" r="23" fill="#0a0b0e"/><circle cx="318" cy="70" r="23" fill="none" stroke="#7a5a2e" stroke-width="4"/>';
+  }
+  return s+'</svg>';
+}
+function buildFret(inst){
+  const tuning=TUNINGS[inst]||TUNINGS.guitar;
+  autoStrumStop(); fretWrap.innerHTML='';
+  // ---- κεφαλίδα: τύπος κιθάρας + συγχορδίες ----
+  const head=document.createElement('div'); head.className='fret-head';
+  if(inst==='guitar'){
+    const gt=document.createElement('select'); gt.className='sel';
+    [['acoustic','🎸 Ακουστική'],['electroacoustic','🎸 Ηλεκτρο-ακουστική'],['electric','🎸 Ηλεκτρική'],['classical','🎸 Κλασική (νάιλον)']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v;o.textContent=l; gt.appendChild(o); });
+    gt.value=guitarType; gt.onchange=()=>{ guitarType=gt.value; toast('Κιθάρα: '+gt.options[gt.selectedIndex].text); };
+    head.appendChild(gt);
+    const cb=document.createElement('div'); cb.className='chord-btns';
+    Object.keys(CHORDS).forEach(name=>{ const b=document.createElement('button'); b.className='chord-btn'+(name===curChordName?' on':''); b.textContent=name;
+      b.onclick=()=>{ curInst='guitar'; curChord=CHORDS[name].slice(); curChordName=name; strumChord('D');
+        cb.querySelectorAll('.chord-btn').forEach(x=>x.classList.remove('on')); b.classList.add('on'); }; cb.appendChild(b); });
+    head.appendChild(cb);
+    // πετάλια distortion (ηλεκτρική)
+    const pedals=document.createElement('div'); pedals.className='chord-btns'; pedals.innerHTML='<span class="kbd-hint">🎛 Πετάλι:</span>';
+    [['clean','Clean'],['overdrive','Overdrive'],['distortion','Distortion'],['fuzz','Fuzz']].forEach(([v,l])=>{ const p=document.createElement('button'); p.className='chord-btn'+(guitarDist===v?' on':''); p.textContent=l;
+      p.onclick=()=>{ setGuitarDist(v); if(v!=='clean'){ guitarType='electric'; gt.value='electric'; } pedals.querySelectorAll('.chord-btn').forEach(x=>x.classList.remove('on')); p.classList.add('on'); toast('Πετάλι: '+l+(v!=='clean'?' (ηλεκτρική)':'')); }; pedals.appendChild(p); });
+    head.appendChild(pedals);
+  } else { const nm={bass:'Μπάσο',violin:'Βιολί',bouzouki:'Μπουζούκι'}[inst]||inst;
+    const lbl=document.createElement('span'); lbl.className='kbd-hint'; lbl.textContent=nm+' — άγγιξε χορδές/τάστα, σύρε την πένα, ή βάλε αυτόματη ακολουθία πιο πάνω'; head.appendChild(lbl); }
+  fretWrap.appendChild(head);
+  // ---- σώμα οργάνου με χορδές (strum με ποντίκι/πένα) ----
+  const body=document.createElement('div'); body.className='strum-body body-'+inst;
+  body.innerHTML=bodySVG(inst);
+  const revTune=[...tuning].reverse(); // ψηλή πάνω
+  revTune.forEach((openMidi,i)=>{ const st=document.createElement('div'); st.className='gstring'; st.dataset.idx=i; st.dataset.open=openMidi; body.appendChild(st); });
+  let dragging=false;
+  function strumHit(e){ const el=document.elementFromPoint(e.clientX,e.clientY); if(!el||!el.classList.contains('gstring'))return;
+    if(el._last&&Date.now()-el._last<70)return; el._last=Date.now(); const i=+el.dataset.idx;
+    curInst=inst; const chordHiLo=[...curChord].reverse(); const note=(inst==='guitar'&&chordHiLo[i]!=null)?chordHiLo[i]:+el.dataset.open;
+    playNote(midiFreq(note)); el.classList.add('pluck'); setTimeout(()=>el.classList.remove('pluck'),150); }
+  body.addEventListener('pointerdown',e=>{ dragging=true; strumHit(e); });
+  body.addEventListener('pointermove',e=>{ if(dragging) strumHit(e); });
+  window.addEventListener('pointerup',()=>dragging=false);
+  fretWrap.appendChild(body);
+  // (η αυτόματη συνοδεία είναι πλέον κοινή — #autoAccomp panel)
+  // ---- ταστιέρα (όλα τα τάστα, οριζόντια κύλιση) ----
+  const gridCols='56px repeat('+FRETS+',minmax(42px,1fr))';
+  const fb=document.createElement('div'); fb.className='fretboard';
+  revTune.forEach(openMidi=>{
+    const row=document.createElement('div'); row.className='fret-row'; row.style.gridTemplateColumns=gridCols;
+    const open=document.createElement('div'); open.className='fret-open'; open.textContent=NNAMES[openMidi%12];
+    open.onclick=()=>{ curInst=inst; playNote(midiFreq(openMidi)); };
+    row.appendChild(open);
+    for(let f=1;f<=FRETS;f++){ const midi=openMidi+f; const cell=document.createElement('div'); cell.className='fret-cell';
+      cell.innerHTML='<span class="fdot">'+NNAMES[midi%12]+'</span>';
+      cell.onclick=()=>{ curInst=inst; playNote(midiFreq(midi)); cell.classList.add('hit'); setTimeout(()=>cell.classList.remove('hit'),120); };
+      row.appendChild(cell); }
+    fb.appendChild(row);
+  });
+  fretWrap.appendChild(fb);
+  const nums=document.createElement('div'); nums.className='fret-nums'; nums.style.gridTemplateColumns=gridCols;
+  let numHtml='<span></span>';
+  for(let f=1;f<=FRETS;f++){ const m=FRET_MARKERS[f]; numHtml+='<span>'+f+(m===2?' ●●':(m?' ●':''))+'</span>'; }
+  nums.innerHTML=numHtml;
+  fretWrap.appendChild(nums);
+}
+/* ---- ΚΛΑΡΙΝΟ: σώμα με τρύπες/κλειδιά ---- */
+function buildWind(){
+  autoStop(); fretWrap.innerHTML='';
+  const head=document.createElement('div'); head.className='fret-head';
+  head.innerHTML='<span class="kbd-hint">🎵 Κλαρίνο — πάτα τις τρύπες (ή παίξε με το πληκτρολόγιο/αυτόματη ακολουθία)</span>';
+  fretWrap.appendChild(head);
+  const wrap=document.createElement('div'); wrap.className='clarinet';
+  const scale=[62,64,66,67,69,71,73,74,76,78,79,81,83,85]; // ανοδική κλίμακα ~2 οκτάβες
+  let svg='<svg class="clar-svg" viewBox="0 0 700 84" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="tube" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f4a"/><stop offset="0.5" stop-color="#0c0d11"/><stop offset="1" stop-color="#2a2e37"/></linearGradient></defs>';
+  svg+='<rect x="6" y="24" width="22" height="36" rx="6" fill="#1a1d24"/>'; // επιστόμιο
+  svg+='<rect x="24" y="30" width="650" height="24" rx="12" fill="url(#tube)" stroke="#000"/>';
+  svg+='<path d="M674 20 Q700 42 674 64 Z" fill="#20242c" stroke="#000"/>'; // καμπάνα
+  scale.forEach((m,i)=>{ const x=60+i*44; svg+='<circle class="chole" data-midi="'+m+'" cx="'+x+'" cy="42" r="9" fill="#c7ccd8" stroke="#000"/>'; });
+  svg+='</svg>';
+  wrap.innerHTML=svg; fretWrap.appendChild(wrap);
+  wrap.querySelectorAll('.chole').forEach(h=>{ const trig=ev=>{ ev.preventDefault(); curInst='clarinet'; playNote(midiFreq(+h.dataset.midi)); h.classList.add('hit'); setTimeout(()=>h.classList.remove('hit'),120); };
+    h.addEventListener('mousedown',trig); h.addEventListener('touchstart',trig,{passive:false}); });
+}
+/* ---- ΤΟΥΜΠΕΛΕΚΙ (goblet drum): doum/tek/slap ---- */
+function tDoum(t){ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.setValueAtTime(160,t); o.frequency.exponentialRampToValueAtTime(75,t+.18); g.gain.setValueAtTime(1,t); g.gain.exponentialRampToValueAtTime(.001,t+.35); o.connect(g);g.connect(instGain);o.start(t);o.stop(t+.36); }
+function tTek(t){ const s=noise(.08),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass'; f.frequency.value=3000; g.gain.setValueAtTime(.5,t); g.gain.exponentialRampToValueAtTime(.001,t+.09); s.connect(f);f.connect(g);g.connect(instGain);s.start(t);s.stop(t+.1);
+  const o=AC.createOscillator(),og=AC.createGain(); o.frequency.value=520; og.gain.setValueAtTime(.25,t); og.gain.exponentialRampToValueAtTime(.001,t+.06); o.connect(og);og.connect(instGain);o.start(t);o.stop(t+.06); }
+function tSlap(t){ const s=noise(.12),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='bandpass'; f.frequency.value=1200; f.Q.value=.8; g.gain.setValueAtTime(.6,t); g.gain.exponentialRampToValueAtTime(.001,t+.12); s.connect(f);f.connect(g);g.connect(instGain);s.start(t);s.stop(t+.13); }
+const TOUMB={ Doum:tDoum, Tek:tTek, Slap:tSlap };
+function buildToumbeleki(){
+  autoStop(); fretWrap.innerHTML='';
+  const head=document.createElement('div'); head.className='fret-head';
+  head.innerHTML='<span class="kbd-hint">🪘 Τουμπελέκι — DOUM (κέντρο, βαθύ) · TEK (χείλος, οξύ) · SLAP · Πλήκτρα: D/J=Doum, K=Tek, L=Slap</span>';
+  fretWrap.appendChild(head);
+  const wrap=document.createElement('div'); wrap.className='toumbeleki';
+  let svg='<svg class="toumb-svg" viewBox="0 0 260 300" xmlns="http://www.w3.org/2000/svg"><defs>'
+    +'<radialGradient id="skin" cx="42%" cy="35%" r="70%"><stop offset="0" stop-color="#f3e6c4"/><stop offset="70%" stop-color="#d9c191"/><stop offset="100%" stop-color="#b09562"/></radialGradient>'
+    +'<linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9a45a"/><stop offset="0.5" stop-color="#8a6f2e"/><stop offset="1" stop-color="#c9a45a"/></linearGradient></defs>'
+    +'<path d="M95 150 L110 285 Q130 300 150 285 L165 150 Z" fill="url(#metal)" stroke="#5a4620" stroke-width="2"/>'  // κορμός (goblet)
+    +'<ellipse cx="130" cy="150" rx="118" ry="30" fill="#8a6f2e"/>'                                                   // χείλος πλάι
+    +'<g class="tzone" data-t="Tek"><ellipse cx="130" cy="140" rx="115" ry="34" fill="url(#metal)" stroke="#5a4620" stroke-width="2"/><text x="130" y="120" class="tlbl" style="font-size:11px">TEK</text></g>'
+    +'<g class="tzone" data-t="Doum"><ellipse cx="130" cy="138" rx="86" ry="26" fill="url(#skin)"/><text x="130" y="144" class="tlbl" fill="#5a4620">DOUM</text></g>'
+    +'</svg>';
+  wrap.innerHTML=svg;
+  // Slap ζώνη = εξωτερικό χείλος (κλικ έξω από doum) → πρόσθεσε ξεχωριστό κουμπί
+  const extra=document.createElement('div'); extra.className='drum-extra';
+  ['Doum','Tek','Slap'].forEach(nm=>{ const b=document.createElement('button'); b.className='btn'; b.textContent='🥁 '+nm; b.onclick=()=>{ if(AC.state==='suspended')AC.resume(); TOUMB[nm](AC.currentTime+0.01); }; extra.appendChild(b); });
+  fretWrap.appendChild(wrap); fretWrap.appendChild(extra);
+  wrap.querySelectorAll('.tzone').forEach(z=>{ const trig=ev=>{ ev.preventDefault(); if(AC.state==='suspended')AC.resume(); TOUMB[z.dataset.t](AC.currentTime+0.01); z.classList.add('hit'); setTimeout(()=>z.classList.remove('hit'),120); };
+    z.addEventListener('mousedown',trig); z.addEventListener('touchstart',trig,{passive:false}); });
+}
+document.getElementById('instSelect').onchange=e=>{
+  curInst=e.target.value;
+  const isDrums=curInst==='drums', isString=['guitar','bass','violin','bouzouki'].includes(curInst), isWind=curInst==='clarinet', isPerc=curInst==='toumbeleki', isKbd=['piano','synth'].includes(curInst);
+  pianoWrap.style.display=isKbd?'flex':'none';
+  drumWrap.style.display=isDrums?'block':'none';
+  fretWrap.style.display=(isString||isWind||isPerc)?'block':'none';
+  document.getElementById('autoAccomp').style.display=(isDrums||isPerc)?'none':'block'; // συνοδεία=μελωδικά όργανα
+  if(isString) buildFret(curInst); else if(isWind) buildWind(); else if(isPerc) buildToumbeleki();
+  updateKbdLabels();
+};
+
+/* ---- computer-keyboard για ΟΛΑ τα όργανα ---- */
+let keyboardPianoOn=false, pianoBaseOct=4;
+const KEYMAP={z:0,s:1,x:2,d:3,c:4,v:5,g:6,b:7,h:8,n:9,j:10,m:11,',':12,
+  q:12,'2':13,w:14,'3':15,e:16,r:17,'5':18,t:19,'6':20,y:21,'7':22,u:23,i:24};
+const DRUMKEYMAP={a:'Kick',' ':'Kick',s:'Snare',d:'Hi-Hat',f:'Open Hat',g:'Tom',h:'Tom',j:'Tom',k:'Crash',l:'Ride',';':'Splash',c:'Clap'};
+const pressedK=new Set();
+function flashKey(midi){ const el=document.querySelector('.pkey[data-midi="'+midi+'"]'); if(el){ el.classList.add('hit'); setTimeout(()=>el.classList.remove('hit'),120); } }
+function flashDrum(name){ const el=document.querySelector('.dpart[data-drum="'+name+'"]'); if(el){ el.classList.add('hit'); setTimeout(()=>el.classList.remove('hit'),120); } }
+function setOct(n){ pianoBaseOct=Math.max(1,Math.min(7,n)); document.getElementById('octVal').textContent=pianoBaseOct; updateKbdLabels(); }
+function updateKbdLabels(){
+  document.querySelectorAll('.pkey.kbd').forEach(el=>{ el.classList.remove('kbd'); el.removeAttribute('data-kbd'); });
+  if(!keyboardPianoOn || (curInst!=='piano'&&curInst!=='synth')) return;
+  for(const k in KEYMAP){ const midi=(pianoBaseOct+1)*12+KEYMAP[k]; const el=document.querySelector('.pkey[data-midi="'+midi+'"]'); if(el){ el.classList.add('kbd'); el.setAttribute('data-kbd',k.toUpperCase()); } }
+}
+function instKeyDown(e){
+  const k=e.key.toLowerCase();
+  if(curInst==='drums'){ if(k in DRUMKEYMAP){ e.preventDefault(); if(pressedK.has(k))return; pressedK.add(k); const nm=DRUMKEYMAP[k]; if(AC.state==='suspended')AC.resume(); const d=drumByName[nm]; if(d)d.fn(AC.currentTime+0.01); flashDrum(nm); } return; }
+  if(curInst==='toumbeleki'){ const TK={d:'Doum',j:'Doum',' ':'Doum',k:'Tek',l:'Slap'}; if(k in TK){ e.preventDefault(); if(pressedK.has(k))return; pressedK.add(k); if(AC.state==='suspended')AC.resume(); TOUMB[TK[k]](AC.currentTime+0.01); const z=document.querySelector('.tzone[data-t="'+TK[k]+'"]'); if(z){z.classList.add('hit');setTimeout(()=>z.classList.remove('hit'),120);} } return; }
+  if(k==='arrowup'){ setOct(pianoBaseOct+1); e.preventDefault(); return; }
+  if(k==='arrowdown'){ setOct(pianoBaseOct-1); e.preventDefault(); return; }
+  if(!(k in KEYMAP)) return;
+  e.preventDefault(); if(pressedK.has(k)) return; pressedK.add(k);
+  const midi=(pianoBaseOct+1)*12+KEYMAP[k]; playNote(midiFreq(midi)); flashKey(midi); // παίζει με το ΤΡΕΧΟΝ όργανο
+}
+window.addEventListener('keyup',e=>pressedK.delete(e.key.toLowerCase()));
+document.getElementById('kbdToggle').onclick=function(){
+  keyboardPianoOn=!keyboardPianoOn; this.textContent='⌨ Πληκτρολόγιο: '+(keyboardPianoOn?'ON':'OFF'); this.classList.toggle('active',keyboardPianoOn);
+  if(keyboardPianoOn) window.__goTab&&window.__goTab('instruments');
+  updateKbdLabels(); toast(keyboardPianoOn?'Πληκτρολόγιο ON για «'+curInst+'» (DJ πλήκτρα ανενεργά)':'Πληκτρολόγιο OFF');
+};
+document.getElementById('octDown').onclick=()=>setOct(pianoBaseOct-1);
+document.getElementById('octUp').onclick=()=>setOct(pianoBaseOct+1);
+
+/* ============================================================
+   TABS — οργάνωση UI σε καρτέλες
+   ============================================================ */
+(function buildTabs(){
+  const header=document.querySelector('header');
+  const map=[
+    {id:'decks', label:'🎚 Κονσόλα', sel:['#sec-viz','#sec-eq','#sec-smart','.rig']},
+    {id:'sampler', label:'🔊 Sampler', sel:['#sec-sampler','#sec-soundboard']},
+    {id:'instruments', label:'🎹 Όργανα', sel:['#sec-instruments']},
+    {id:'band', label:'🥁 Ορχήστρα', sel:['#sec-band']},
+    {id:'library', label:'📚 Βιβλιοθήκη', sel:['#sec-library']},
+    {id:'settings', label:'⚙ Ρυθμίσεις', sel:['.appearance','#hint']}
+  ];
+  const bar=document.createElement('div'); bar.className='tabbar';
+  const container=document.createElement('div'); container.id='tabpages';
+  map.forEach((m,i)=>{
+    const btn=document.createElement('button'); btn.className='tab'+(i===0?' active':''); btn.dataset.page=m.id;
+    btn.innerHTML=m.label+'<span class="dot"></span>';
+    bar.appendChild(btn);
+    const page=document.createElement('div'); page.className='tabpage'+(i===0?' active':''); page.id='page-'+m.id;
+    m.sel.forEach(s=>{ const el=document.querySelector(s); if(el) page.appendChild(el); });
+    container.appendChild(page);
+  });
+  header.insertAdjacentElement('afterend', bar);
+  bar.insertAdjacentElement('afterend', container);
+  function go(id){
+    bar.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active', x.dataset.page===id));
+    container.querySelectorAll('.tabpage').forEach(p=>p.classList.toggle('active', p.id==='page-'+id));
+    // ξαναζωγράφισε κυματομορφές όταν ανοίγει η Κονσόλα (canvas είχε width 0 όσο ήταν κρυφό)
+    if(id==='decks'){ ['A','B'].forEach(d=>{ if(decks[d].buffer) drawWave(d,decks[d].buffer); }); }
+  }
+  bar.querySelectorAll('.tab').forEach(t=> t.onclick=()=>{ go(t.dataset.page); window.scrollTo({top:0,behavior:'smooth'}); });
+  const help=document.getElementById('helpBtn'); if(help) help.onclick=()=>go('settings');
+  window.__goTab=go;
+})();
+
+/* ============================================================
+   ΟΡΧΗΣΤΡΑ — ρυθμομηχανή (auto band): drums + bass + chords
+   ============================================================ */
+const bandGain=AC.createGain(); bandGain.gain.value=0.85; bandGain.connect(master);
+const drumsGain=AC.createGain(); drumsGain.gain.value=1; drumsGain.connect(bandGain);
+const bassGain=AC.createGain(); bassGain.gain.value=0.9; bassGain.connect(bandGain);
+const chordsGain=AC.createGain(); chordsGain.gain.value=0.6; chordsGain.connect(bandGain);
+const layerOn={drums:true,bass:true,chords:true};
+let metroOn=false;
+
+const BAND_STYLES={
+  'Rock':     {kick:'1000100010001000', snare:'0000100000001000', hat:'1010101010101010', bass:'1000100010001000', chord:'1000000010000000'},
+  'Pop':      {kick:'1000000010000000', snare:'0000100000001000', hat:'1010101010101010', bass:'1000001010000010', chord:'1000000000000000'},
+  'Funk':     {kick:'1001001000100100', snare:'0000100000001000', hat:'1010101010101010', bass:'1001001010010010', chord:'0010000000100000'},
+  'Disco':    {kick:'1000100010001000', snare:'0000100000001000', hat:'0010001000100010', bass:'1010101010101010', chord:'1000100010001000'},
+  'Latin':    {kick:'1000010010000100', snare:'0010010000100100', hat:'1010101010101010', bass:'1000010010000100', chord:'1000000010000000'},
+  'Reggae':   {kick:'0000000010000000', snare:'0000100000001000', hat:'0010001000100010', bass:'0010001000100010', chord:'0010001000100010'},
+  'Hip-Hop':  {kick:'1000000010010000', snare:'0000100000001000', hat:'1010101010101010', bass:'1000000010010000', chord:'1000000000000000'},
+  'Ballad':   {kick:'1000000000000000', snare:'0000000010000000', hat:'1000100010001000', bass:'1000000010000000', chord:'1000000010000000'},
+  'Trap':     {kick:'1000001000100000', snare:'0000100000001000', hat:'1011101110111011', bass:'1000001000100000', chord:'1000000000000000'}
+};
+const PROGRESSIONS={
+  'I–V–vi–IV (Pop)':[0,4,5,3],
+  'I–IV–V (Κλασικό)':[0,3,4],
+  'ii–V–I (Jazz)':[1,4,0],
+  'vi–IV–I–V':[5,3,0,4],
+  'I–vi–IV–V (50s)':[0,5,3,4],
+  '12-bar Blues':[0,0,0,0,3,3,0,0,4,3,0,4],
+  'vi–V–IV–V (Minor feel)':[5,4,3,4]
+};
+const MAJSCALE=[0,2,4,5,7,9,11];
+const QUAL=['','m','m','','','m','dim']; // diatonic qualities (major key)
+function scaleMidi(key, deg, baseOct){ const oct=baseOct+Math.floor(deg/7); const semi=MAJSCALE[((deg%7)+7)%7]; return (oct+1)*12+key+semi; }
+function chordName(key, deg){ const d=((deg%7)+7)%7; return NOTE_NAMES[(key+MAJSCALE[d])%12]+QUAL[d]; }
+
+// band voices
+function noiseBuf(sec){ const b=AC.createBuffer(1,AC.sampleRate*sec,AC.sampleRate); const d=b.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; return b; }
+function bKick(t){ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(45,t+.12); g.gain.setValueAtTime(1,t); g.gain.exponentialRampToValueAtTime(.001,t+.28); o.connect(g);g.connect(drumsGain);o.start(t);o.stop(t+.3); }
+function bSnare(t){ const s=AC.createBufferSource(); s.buffer=noiseBuf(.2); const f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass';f.frequency.value=1200; g.gain.setValueAtTime(.6,t); g.gain.exponentialRampToValueAtTime(.001,t+.18); s.connect(f);f.connect(g);g.connect(drumsGain);s.start(t);s.stop(t+.2); }
+function bHat(t){ const s=AC.createBufferSource(); s.buffer=noiseBuf(.05); const f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass';f.frequency.value=7000; g.gain.setValueAtTime(.28,t); g.gain.exponentialRampToValueAtTime(.001,t+.05); s.connect(f);f.connect(g);g.connect(drumsGain);s.start(t);s.stop(t+.06); }
+function bTom(midi,t){ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.setValueAtTime(midiFreq(midi),t); o.frequency.exponentialRampToValueAtTime(midiFreq(midi)*0.5,t+.2); g.gain.setValueAtTime(.6,t); g.gain.exponentialRampToValueAtTime(.001,t+.25); o.connect(g);g.connect(drumsGain);o.start(t);o.stop(t+.26); }
+function bCrash(t){ const s=AC.createBufferSource(); s.buffer=noiseBuf(1.2); const f=AC.createBiquadFilter(),g=AC.createGain(); f.type='highpass';f.frequency.value=5000; g.gain.setValueAtTime(.4,t); g.gain.exponentialRampToValueAtTime(.001,t+1.1); s.connect(f);f.connect(g);g.connect(drumsGain);s.start(t);s.stop(t+1.2); }
+// fill: snare/tom roll building to the end of the bar
+const FILL={kick:'1000000000000000', snare:'0000001010111111', hat:'1010000000000000'};
+const FILL_TOMS=[60,60,62,62,64,65,67,69]; // ανεβαίνει προς το τέλος
+function bBass(midi,t,dur){ const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter(); f.type='lowpass';f.frequency.value=600; o.type='triangle';o2.type='sine'; const fr=midiFreq(midi); o.frequency.value=fr;o2.frequency.value=fr; o.connect(f);o2.connect(f);f.connect(g);g.connect(bassGain); g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.6,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+dur); o.start(t);o2.start(t);o.stop(t+dur+.05);o2.stop(t+dur+.05); }
+function bChord(midis,t,dur){ const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2200; const g=AC.createGain(); f.connect(g); g.connect(chordsGain); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.4,t+.02); g.gain.setValueAtTime(.4,t+dur*0.6); g.gain.exponentialRampToValueAtTime(.001,t+dur); midis.forEach(m=>{ const o=AC.createOscillator(); o.type='triangle'; o.frequency.value=midiFreq(m); o.connect(f); o.start(t); o.stop(t+dur+.05); }); }
+
+// scheduler
+let bandPlaying=false, bandStep=0, bandBar=0, nextStepTime=0, bandBpm=100, bandTimer=null;
+let bandStyle='Pop', bandKey=0, bandProg='I–V–vi–IV (Pop)';
+let activePattern=null; // τρέχον ενεργό μοτίβο (working copy)
+let swing=0, fillEvery=8, fillQueued=false, barIsFill=false, lastBarFill=false;
+function clonePat(p){ return {kick:p.kick,snare:p.snare,hat:p.hat,bass:p.bass,chord:p.chord}; }
+function emptyPat(){ const z='0000000000000000'; return {kick:z,snare:z,hat:z,bass:z,chord:z}; }
+function currentDeg(){ const p=PROGRESSIONS[bandProg]; return p[bandBar % p.length]; }
+function scheduleStep(step, time){
+  const st=activePattern||BAND_STYLES[bandStyle];
+  if(step===0){ // νέα μπάρα: υπολόγισε fill + crash μετά από fill
+    if(lastBarFill) bCrash(time);
+    barIsFill = fillQueued || (fillEvery>0 && (bandBar % fillEvery)===(fillEvery-1));
+    fillQueued=false; lastBarFill=barIsFill;
+  }
+  if(layerOn.drums){
+    const dr = barIsFill ? FILL : st;
+    if(dr.kick[step]==='1')bKick(time);
+    if(dr.snare[step]==='1')bSnare(time);
+    if(dr.hat[step]==='1')bHat(time);
+    if(barIsFill && step>=8 && dr.snare[step]==='1') bTom(FILL_TOMS[step-8], time); // tom roll στο fill
+  }
+  const deg=currentDeg();
+  if(layerOn.bass && st.bass[step]==='1'){ bBass(scaleMidi(bandKey,deg,2), time, (60/bandBpm)/2); }
+  if(layerOn.chords && st.chord[step]==='1'){ bChord([scaleMidi(bandKey,deg,4),scaleMidi(bandKey,deg+2,4),scaleMidi(bandKey,deg+4,4)], time, (60/bandBpm)*1.8); }
+  if(metroOn && step%4===0){ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=step===0?1500:1000; g.gain.setValueAtTime(.15,time);g.gain.exponentialRampToValueAtTime(.001,time+.05); o.connect(g);g.connect(bandGain);o.start(time);o.stop(time+.05); }
+  const delay=Math.max(0,(time-AC.currentTime)*1000);
+  setTimeout(()=>{ lightStep(step); if(step===0) document.getElementById('nowChord').textContent=chordName(bandKey,deg); }, delay);
+}
+function bandScheduler(){
+  const spb=(60/bandBpm)/4; // 16th
+  while(nextStepTime < AC.currentTime + 0.12){
+    const t = (bandStep%2===1) ? nextStepTime + swing*spb : nextStepTime; // swing στα off-16ths
+    scheduleStep(bandStep, t);
+    nextStepTime += spb;
+    bandStep=(bandStep+1)%16;
+    if(bandStep===0){ bandBar++; if(songMode) songBarComplete(nextStepTime); }
+  }
+}
+function bandStart(){
+  if(AC.state==='suspended') AC.resume();
+  bandPlaying=true; bandStep=0; bandBar=0; nextStepTime=AC.currentTime+0.06;
+  if(songMode && songSeq.length){ songSecIdx=0; songBarInSec=0; applySection(0, nextStepTime); }
+  bandTimer=setInterval(bandScheduler,25);
+  document.getElementById('bandPlay').textContent='⏹ Στοπ';
+  document.getElementById('bandPlay').classList.add('active');
+}
+function bandStop(){
+  bandPlaying=false; clearInterval(bandTimer); bandTimer=null;
+  document.getElementById('bandPlay').textContent='▶ Έναρξη';
+  document.getElementById('bandPlay').classList.remove('active');
+  document.querySelectorAll('.step-led').forEach(l=>l.classList.remove('on'));
+  document.querySelectorAll('.pe-cell').forEach(c=>c.classList.remove('play'));
+}
+function lightStep(step){
+  document.querySelectorAll('.step-led').forEach((l,i)=>l.classList.toggle('on', i===step));
+  document.querySelectorAll('.pe-cell').forEach(c=>c.classList.toggle('play', +c.dataset.i===step));
+}
+
+/* ---- pattern editor ---- */
+const PE_ROWS=[['kick','Kick'],['snare','Snare'],['hat','Hi-Hat'],['bass','Μπάσο'],['chord','Συγχ.']];
+function buildEditor(){
+  const grid=document.getElementById('peGrid'); if(!grid||!activePattern) return; grid.innerHTML='';
+  PE_ROWS.forEach(([key,label])=>{
+    const row=document.createElement('div'); row.className='pe-row';
+    const lbl=document.createElement('div'); lbl.className='pe-lbl'; lbl.textContent=label; row.appendChild(lbl);
+    for(let i=0;i<16;i++){ const c=document.createElement('div'); c.className='pe-cell'+(i%4===0?' beat':'')+(activePattern[key][i]==='1'?' on':''); c.dataset.i=i;
+      c.onclick=()=>{ const a=activePattern[key].split(''); a[i]=a[i]==='1'?'0':'1'; activePattern[key]=a.join(''); c.classList.toggle('on'); };
+      row.appendChild(c); }
+    grid.appendChild(row);
+  });
+}
+
+/* ---- saved patterns (localStorage) ---- */
+let savedPatterns={};
+try{ savedPatterns=JSON.parse(localStorage.getItem('djpro-patterns')||'{}'); }catch(e){ savedPatterns={}; }
+function refreshStyleOptions(){
+  const sel=document.getElementById('bandStyle'); const cur=sel.value; sel.innerHTML='';
+  Object.keys(BAND_STYLES).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o); });
+  Object.keys(savedPatterns).forEach(k=>{ const o=document.createElement('option'); o.value='★ '+k; o.textContent='★ '+k; sel.appendChild(o); });
+  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+function loadStyle(val){
+  if(val.startsWith('★ ')){ const p=savedPatterns[val.slice(2)]; if(p){ activePattern=clonePat(p); bandStyle=val; } }
+  else { activePattern=clonePat(BAND_STYLES[val]); bandStyle=val; }
+  buildEditor();
+}
+
+/* ---- SONG MODE ---- */
+let songMode=false, songSeq=[], songSecIdx=0, songBarInSec=0, songLoop=true;
+function applySection(idx, atTime){
+  const sec=songSeq[idx]; if(!sec) return;
+  activePattern=clonePat(sec.pattern); bandProg=sec.prog; bandKey=sec.key; bandBar=0;
+  const d=Math.max(0,(atTime-AC.currentTime)*1000);
+  setTimeout(()=>{ buildEditor(); document.getElementById('songNow').textContent=sec.name+' ('+sec.bars+')'; renderSongSeq(idx);
+    const ks=document.getElementById('bandKey'), ps=document.getElementById('bandProg'); if(ks)ks.value=bandKey; if(ps)ps.value=bandProg; }, d);
+}
+function songBarComplete(atTime){
+  if(!songSeq.length) return;
+  songBarInSec++;
+  if(songBarInSec >= songSeq[songSecIdx].bars){
+    songBarInSec=0; songSecIdx++;
+    if(songSecIdx>=songSeq.length){ if(songLoop){ songSecIdx=0; } else { const d=Math.max(0,(atTime-AC.currentTime)*1000); setTimeout(bandStop,d); return; } }
+    applySection(songSecIdx, atTime);
+  }
+}
+function renderSongSeq(activeIdx){
+  const box=document.getElementById('songSeq');
+  if(!songSeq.length){ box.innerHTML='<span class="song-empty">Κάθε τμήμα κρατά το τρέχον ΣΤΥΛ / ΑΚΟΛΟΥΘΙΑ / μπάρες. Τώρα παίζει: <b id="songNow">—</b></span>'; return; }
+  box.innerHTML='';
+  songSeq.forEach((s,i)=>{ const chip=document.createElement('div'); chip.className='song-chip'+(i===activeIdx?' active':'');
+    chip.innerHTML='<span>'+s.name+' <small>'+s.bars+'μπ · '+NOTE_NAMES[s.key]+'</small></span> <span class="x">✕</span>';
+    chip.querySelector('.x').onclick=()=>{ songSeq.splice(i,1); renderSongSeq(); };
+    box.appendChild(chip); });
+}
+
+/* ---- band recording (μόνο ορχήστρα) ---- */
+const bandRecDest=AC.createMediaStreamDestination(); bandGain.connect(bandRecDest);
+let bandRecorder=null, bandRecChunks=[];
+document.getElementById('bandRec').onclick=function(){
+  if(bandRecorder && bandRecorder.state==='recording'){ bandRecorder.stop(); this.textContent='🎙 Εγγραφή ορχήστρας'; this.classList.remove('active'); return; }
+  bandRecChunks=[]; bandRecorder=new MediaRecorder(bandRecDest.stream);
+  bandRecorder.ondataavailable=e=>{ if(e.data.size) bandRecChunks.push(e.data); };
+  bandRecorder.onstop=()=>{ const blob=new Blob(bandRecChunks,{type:'audio/webm'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='djpro-orxistra-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.webm'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast('Αποθηκεύτηκε η ορχήστρα (.webm)'); };
+  bandRecorder.start(); this.textContent='⏹ Στοπ εγγραφής'; this.classList.add('active');
+  if(!bandPlaying) bandStart();
+  toast('Εγγραφή ορχήστρας…');
+};
+
+// band UI init
+(function initBand(){
+  const keySel=document.getElementById('bandKey'); NOTE_NAMES.forEach((n,i)=>{ const o=document.createElement('option'); o.value=i;o.textContent=n+' major'; keySel.appendChild(o); });
+  const prSel=document.getElementById('bandProg'); Object.keys(PROGRESSIONS).forEach(k=>{ const o=document.createElement('option'); o.value=k;o.textContent=k; prSel.appendChild(o); }); prSel.value=bandProg;
+  const steps=document.getElementById('bandSteps'); for(let i=0;i<16;i++){ const d=document.createElement('div'); d.className='step-led'+(i%4===0?' beat':''); steps.appendChild(d); }
+  refreshStyleOptions();
+  const stSel=document.getElementById('bandStyle'); stSel.value='Pop';
+  activePattern=clonePat(BAND_STYLES['Pop']); buildEditor();
+  stSel.onchange=()=>loadStyle(stSel.value);
+  keySel.onchange=()=>bandKey=parseInt(keySel.value);
+  prSel.onchange=()=>{ bandProg=prSel.value; bandBar=0; };
+  const bpm=document.getElementById('bandBpm'); bpm.oninput=()=>{ bandBpm=parseInt(bpm.value); document.getElementById('bandBpmVal').textContent=bandBpm; };
+  document.getElementById('bandPlay').onclick=()=> bandPlaying?bandStop():bandStart();
+  document.querySelectorAll('.layer-toggle').forEach(b=>{ const lyEl=b.closest('.layer'); const layer=lyEl&&lyEl.dataset.layer; if(!layer) return;
+    b.onclick=()=>{ layerOn[layer]=!layerOn[layer]; b.classList.toggle('on',layerOn[layer]); }; });
+  document.getElementById('metroToggle').onclick=function(){ metroOn=!metroOn; this.classList.toggle('on',metroOn); };
+  document.querySelectorAll('[data-layervol]').forEach(s=>{ s.oninput=()=>{ const g={drums:drumsGain,bass:bassGain,chords:chordsGain}[s.dataset.layervol]; if(g) g.gain.value=parseFloat(s.value); }; });
+  // pattern editor tools
+  document.getElementById('peClear').onclick=()=>{ activePattern=emptyPat(); buildEditor(); };
+  document.getElementById('peSave').onclick=()=>{ const name=(prompt('Όνομα μοτίβου;','Μοτίβο '+ (Object.keys(savedPatterns).length+1))||'').trim(); if(!name) return;
+    savedPatterns[name]=clonePat(activePattern); localStorage.setItem('djpro-patterns',JSON.stringify(savedPatterns)); refreshStyleOptions();
+    document.getElementById('bandStyle').value='★ '+name; bandStyle='★ '+name; toast('Αποθηκεύτηκε: '+name); };
+  // song mode tools
+  document.getElementById('songToggle').onclick=function(){ songMode=!songMode; this.textContent=songMode?'Ενεργό':'Ανενεργό'; this.classList.toggle('on',songMode); };
+  document.getElementById('songLoop').onclick=function(){ songLoop=!songLoop; this.textContent='🔁 Loop: '+(songLoop?'ΝΑΙ':'ΟΧΙ'); };
+  document.getElementById('songClear').onclick=()=>{ songSeq=[]; renderSongSeq(); };
+  document.querySelectorAll('.song-add [data-sec]').forEach(b=>{ b.onclick=()=>{
+    const bars=Math.max(1,Math.min(16,parseInt(document.getElementById('songBars').value)||4));
+    songSeq.push({name:b.dataset.sec, bars, pattern:clonePat(activePattern), prog:bandProg, key:bandKey}); renderSongSeq(); }; });
+  // fill + swing
+  const fe=document.getElementById('fillEvery'); fe.value='8'; fe.onchange=()=>fillEvery=parseInt(fe.value);
+  document.getElementById('fillNow').onclick=()=>{ fillQueued=true; toast('Fill στην επόμενη μπάρα'); };
+  const sw=document.getElementById('swing'); sw.oninput=()=>{ swing=parseFloat(sw.value); document.getElementById('swingVal').textContent=Math.round(swing*100)+'%'; };
+  // save / load ολόκληρου song
+  document.getElementById('songSave').onclick=exportSong;
+  document.getElementById('songOpen').onclick=()=>document.getElementById('songFile').click();
+  document.getElementById('songFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
+    rd.onload=()=>{ try{ importSong(JSON.parse(rd.result)); toast('Φορτώθηκε song'); }catch(err){ toast('Μη έγκυρο αρχείο song'); } }; rd.readAsText(f); e.target.value=''; };
+})();
+
+/* ---- save / load ολόκληρου song ---- */
+function exportSong(){
+  const data={ v:1, bpm:bandBpm, style:bandStyle, key:bandKey, prog:bandProg, swing, fillEvery,
+    layers:layerOn, loop:songLoop, pattern:activePattern, seq:songSeq };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='djpro-song-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast('Αποθηκεύτηκε το song ('+songSeq.length+' τμήματα)');
+}
+function importSong(d){
+  if(!d||typeof d!=='object') throw 'bad';
+  bandBpm=d.bpm||100; bandKey=d.key||0; bandProg=d.prog||bandProg; swing=d.swing||0; fillEvery=d.fillEvery!=null?d.fillEvery:8;
+  if(d.layers) Object.assign(layerOn,d.layers); if(d.loop!=null) songLoop=d.loop;
+  if(d.pattern) activePattern=clonePat(d.pattern); bandStyle=d.style||bandStyle;
+  songSeq=Array.isArray(d.seq)?d.seq:[];
+  // sync UI
+  const g=id=>document.getElementById(id);
+  g('bandBpm').value=bandBpm; g('bandBpmVal').textContent=bandBpm;
+  g('bandKey').value=bandKey; g('bandProg').value=bandProg;
+  g('swing').value=swing; g('swingVal').textContent=Math.round(swing*100)+'%';
+  g('fillEvery').value=String(fillEvery);
+  g('songLoop').textContent='🔁 Loop: '+(songLoop?'ΝΑΙ':'ΟΧΙ');
+  document.querySelectorAll('.layer[data-layer]').forEach(l=>{ const k=l.dataset.layer; l.querySelector('.layer-toggle').classList.toggle('on',layerOn[k]); });
+  buildEditor(); renderSongSeq();
+}
+
+/* ============================================================
+   ΚΑΡΑΟΚΕ — δικοί σου στίχοι, κύλιση & τονισμός γραμμής
+   ============================================================ */
+let kLines=[], kIdx=0, kScroll=null, kAutoTimer=null;
+const kInput=document.getElementById('kInput'), kDisplay=document.getElementById('kDisplay');
+function renderKaraoke(){
+  const lines=kInput.value.split('\n').map(s=>s.trim()).filter(Boolean);
+  kLines=lines; kIdx=0;
+  if(!lines.length){ kDisplay.innerHTML='<div class="k-empty">— δεν έχουν φορτωθεί στίχοι —</div>'; kScroll=null; return; }
+  const scroll=document.createElement('div'); scroll.className='k-scroll';
+  lines.forEach(l=>{ const d=document.createElement('div'); d.className='k-line'; d.textContent=l; scroll.appendChild(d); });
+  kDisplay.innerHTML=''; kDisplay.appendChild(scroll); kScroll=scroll; highlightK();
+}
+function highlightK(){
+  if(!kScroll) return; const lines=kScroll.children;
+  for(let i=0;i<lines.length;i++){ lines[i].className='k-line'+(i===kIdx?' cur':(Math.abs(i-kIdx)===1?' near':'')); }
+  const cur=lines[kIdx]; if(cur){ kScroll.style.transform='translateY('+(kDisplay.clientHeight/2 - cur.offsetTop - cur.offsetHeight/2)+'px)'; }
+}
+function kStep(d){ if(!kLines.length)return; kIdx=Math.max(0,Math.min(kLines.length-1,kIdx+d)); highlightK(); }
+document.getElementById('kLoad').onclick=renderKaraoke;
+document.getElementById('kNext').onclick=()=>kStep(1);
+document.getElementById('kPrev').onclick=()=>kStep(-1);
+document.getElementById('kAuto').onclick=function(){
+  if(kAutoTimer){ clearInterval(kAutoTimer); kAutoTimer=null; this.textContent='▶ Auto'; this.classList.remove('active'); return; }
+  if(!kLines.length) renderKaraoke();
+  this.textContent='⏸ Auto'; this.classList.add('active');
+  kAutoTimer=setInterval(()=>{ if(kIdx>=kLines.length-1){ clearInterval(kAutoTimer); kAutoTimer=null; document.getElementById('kAuto').textContent='▶ Auto'; document.getElementById('kAuto').classList.remove('active'); return; } kStep(1); }, 3500);
+};
+
+/* ============================================================
+   VISUALIZER — γραφικά κονσόλας ανάλογα με το ύφος
+   ============================================================ */
+const VIZ_STYLES={
+  'Rock':   {mode:'bars',  label:'δυναμικό', colors:['#e01e2b','#ff5722','#ff8f00','#ffb300','#ffd54f'], glow:true},
+  'Pop':    {mode:'bars',  label:'πολύχρωμο', colors:['#ff3a47','#ff7a18','#ffd54f','#37d67a','#12c9d6','#5b8cff','#a855f7','#ec4899'], glow:true},
+  'Funk':   {mode:'mirror',label:'groovy', colors:['#ff5722','#ff9800','#ffc107','#ffd54f','#a855f7','#ec4899'], glow:true},
+  'Disco':  {mode:'mirror',label:'retro', colors:['#ec4899','#f06292','#12c9d6','#4dd0e1','#ffd54f','#a855f7','#7c4dff'], glow:true},
+  'Latin':  {mode:'bars',  label:'θερμό', colors:['#e01e2b','#ff5722','#ff8f00','#ffb300','#ffd54f','#fff176'], glow:true},
+  'Reggae': {mode:'wave',  label:'χαλαρό', colors:['#e01e2b','#ff8f00','#ffc107','#ffd54f','#ff5722'], glow:false},
+  'Hip-Hop':{mode:'bars',  label:'neon', colors:['#a855f7','#7c4dff','#5b8cff','#12c9d6','#ec4899'], glow:true},
+  'Ballad': {mode:'wave',  label:'απαλό', colors:['#5b8cff','#7aa5ff','#12c9d6','#4dd0e1','#b39ddb'], glow:false},
+  'Trap':   {mode:'mirror',label:'σκοτεινό neon', colors:['#7c4dff','#a855f7','#ec4899','#12c9d6','#5b8cff'], glow:true},
+  'auto':   {mode:'bars',  label:'αυτόματο (ουράνιο τόξο)', colors:['#e01e2b','#ff7a18','#ffd54f','#37d67a','#12c9d6','#5b8cff','#a855f7','#ec4899'], glow:true}
+};
+let vizOn=true, vizMode='auto';
+const vizCanvas=document.getElementById('viz'), vizCtx=vizCanvas.getContext('2d');
+const vizTime=new Uint8Array(masterAnalyser.fftSize);
+let vizParticles=[];
+document.getElementById('vizToggle').onclick=function(){ vizOn=!vizOn; this.textContent=vizOn?'Ενεργή':'Ανενεργή'; this.classList.toggle('active',!vizOn);
+  if(!vizOn){ vizCtx.clearRect(0,0,vizCanvas.width,vizCanvas.height); } };
+document.getElementById('vizMode').onchange=e=>vizMode=e.target.value;
+let vizHue=0;
+function hex2rgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+function palLerp(colors,f){ f=((f%1)+1)%1; const x=f*colors.length, i=Math.floor(x)%colors.length, t=x-Math.floor(x);
+  const a=hex2rgb(colors[i]), b=hex2rgb(colors[(i+1)%colors.length]);
+  return 'rgb('+Math.round(a[0]+(b[0]-a[0])*t)+','+Math.round(a[1]+(b[1]-a[1])*t)+','+Math.round(a[2]+(b[2]-a[2])*t)+')'; }
+function palAt(colors,f){ return palLerp(colors, f+vizHue); } // ομαλή + ροή χρωμάτων
+function bassLevel(data){ let b=0; for(let i=1;i<10;i++) b+=data[i]; return b/9/255; }
+function drawViz(data){
+  if(!vizOn || !vizCanvas.clientWidth) return;
+  const dpr=window.devicePixelRatio||1, w=vizCanvas.clientWidth, h=vizCanvas.clientHeight;
+  if(vizCanvas.width!==Math.round(w*dpr)){ vizCanvas.width=w*dpr; vizCanvas.height=h*dpr; }
+  const ctx=vizCtx; ctx.setTransform(dpr,0,0,dpr,0,0);
+  const styleKey = bandPlaying ? bandStyle.replace('★ ','') : 'auto';
+  const cfg = VIZ_STYLES[styleKey]||VIZ_STYLES.auto;
+  const mode = vizMode==='auto' ? cfg.mode : vizMode;
+  document.getElementById('vizStyleName').textContent = (bandPlaying?styleKey:'αυτόματο')+' · '+(vizMode==='auto'?cfg.label:vizMode);
+  ctx.clearRect(0,0,w,h);
+  const n=data.length, col=cfg.colors;
+  vizHue=(vizHue+0.0025)%1; // ροή χρωμάτων
+  ctx.shadowBlur = cfg.glow?14:0;
+  if(mode==='bars'){
+    const bars=64, bw=w/bars;
+    for(let i=0;i<bars;i++){ const v=data[Math.floor(i/bars*n*0.8)]/255; const bh=Math.max(2,v*h*0.95);
+      const c=palAt(col,i/bars); ctx.fillStyle=c; ctx.shadowColor=c; ctx.fillRect(i*bw+1,h-bh,bw-2,bh); }
+  } else if(mode==='mirror'){
+    const bars=48, bw=w/bars, mid=h/2;
+    for(let i=0;i<bars;i++){ const v=data[Math.floor(i/bars*n*0.8)]/255; const bh=Math.max(2,v*h*0.46);
+      const c=palAt(col,i/bars); ctx.fillStyle=c; ctx.shadowColor=c; ctx.fillRect(i*bw+1,mid-bh,bw-2,bh*2); }
+    const bs=bassLevel(data); ctx.beginPath(); ctx.arc(w/2,mid,10+bs*40,0,7); ctx.strokeStyle=col[0]; ctx.shadowColor=col[0]; ctx.lineWidth=3; ctx.stroke();
+  } else if(mode==='wave'){
+    ctx.lineWidth=3; ctx.strokeStyle=col[0]; ctx.shadowColor=col[0]; ctx.beginPath();
+    for(let x=0;x<w;x++){ const v=data[Math.floor(x/w*n*0.7)]/255; const y=h-8-v*(h-16); if(x===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.stroke();
+    const grd=ctx.createLinearGradient(0,0,w,0); col.forEach((c,i)=>grd.addColorStop(i/(col.length-1||1),c));
+    ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath(); ctx.globalAlpha=.18; ctx.fillStyle=grd; ctx.fill(); ctx.globalAlpha=1;
+  } else if(mode==='radial'){
+    const cx=w/2, cy=h/2, R=Math.min(w,h)*0.18, spokes=72;
+    for(let i=0;i<spokes;i++){ const v=data[Math.floor(i/spokes*n*0.8)]/255; const len=R+v*Math.min(w,h)*0.34;
+      const a=i/spokes*Math.PI*2; const c=palAt(col,i/spokes); ctx.strokeStyle=c; ctx.shadowColor=c; ctx.lineWidth=2.5;
+      ctx.beginPath(); ctx.moveTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); ctx.lineTo(cx+Math.cos(a)*len,cy+Math.sin(a)*len); ctx.stroke(); }
+    const bs=bassLevel(data); ctx.beginPath(); ctx.arc(cx,cy,R*(0.6+bs*0.5),0,7); ctx.fillStyle=col[0]; ctx.globalAlpha=.25; ctx.fill(); ctx.globalAlpha=1;
+  } else if(mode==='particles'){
+    const bs=bassLevel(data);
+    if(bs>0.55 && vizParticles.length<160){ for(let k=0;k<10;k++){ const a=Math.random()*Math.PI*2, sp=1+bs*5;
+      vizParticles.push({x:w/2,y:h/2,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,c:col[Math.floor(Math.random()*col.length)]}); } }
+    vizParticles=vizParticles.filter(p=>p.life>0);
+    vizParticles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.04; p.life-=0.018;
+      ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.c; ctx.shadowColor=p.c; ctx.beginPath(); ctx.arc(p.x,p.y,2+p.life*3,0,7); ctx.fill(); });
+    ctx.globalAlpha=1;
+  } else if(mode==='scope'){
+    masterAnalyser.getByteTimeDomainData(vizTime); const tn=vizTime.length;
+    ctx.lineWidth=2.5; ctx.strokeStyle=col[0]; ctx.shadowColor=col[0]; ctx.beginPath();
+    for(let x=0;x<w;x++){ const v=(vizTime[Math.floor(x/w*tn)]-128)/128; const y=h/2+v*h*0.45; if(x===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+    ctx.stroke();
+  } else if(mode==='fire'){
+    const bars=96, bw=w/bars;
+    for(let i=0;i<bars;i++){ const v=data[Math.floor(i/bars*n*0.7)]/255; const bh=Math.max(2,v*h);
+      const grd=ctx.createLinearGradient(0,h,0,h-bh); grd.addColorStop(0,'#ffd54f'); grd.addColorStop(0.5,'#ff8f00'); grd.addColorStop(1,'#e01e2b');
+      ctx.fillStyle=grd; ctx.shadowColor='#ff5722'; ctx.fillRect(i*bw,h-bh,bw+0.5,bh); }
+  }
+  ctx.shadowBlur=0;
+}
+
+/* ============================================================
+   GRAPHIC EQUALIZER (8-band master) — αλλάζει όντως τον ήχο
+   ============================================================ */
+const EQ_FREQS=[60,150,400,1000,2400,6000,10000,14000];
+const EQ_LABELS=['60','150','400','1k','2.4k','6k','10k','14k'];
+const eqBands=EQ_FREQS.map((f,i)=>{ const b=AC.createBiquadFilter();
+  b.type = i===0?'lowshelf' : i===EQ_FREQS.length-1?'highshelf':'peaking';
+  b.frequency.value=f; if(b.type==='peaking') b.Q.value=1.1; b.gain.value=0; return b; });
+try{ master.disconnect(); }catch(e){}
+(function(){ let pv=master; eqBands.forEach(b=>{ pv.connect(b); pv=b; }); pv.connect(mLow); })();
+const eqWrap=document.getElementById('eqBands');
+eqBands.forEach((b,i)=>{ const d=document.createElement('div'); d.className='eq-band';
+  d.innerHTML='<input type="range" class="vert" min="-12" max="12" step="0.5" value="0"><span class="eq-g">0</span><span class="eq-f">'+EQ_LABELS[i]+'</span>';
+  const sl=d.querySelector('input'), g=d.querySelector('.eq-g');
+  sl.oninput=()=>{ b.gain.value=parseFloat(sl.value); g.textContent=(sl.value>0?'+':'')+sl.value; };
+  eqWrap.appendChild(d); });
+const EQ_PRESETS={ flat:[0,0,0,0,0,0,0,0], bass:[8,6,3,0,0,0,0,0], vocal:[-2,-1,1,3,4,2,0,-1], treble:[0,0,0,0,2,4,6,7], smile:[6,4,1,-2,-2,1,4,6] };
+document.querySelectorAll('.eqp').forEach(btn=>{ btn.onclick=()=>{ const p=EQ_PRESETS[btn.dataset.eqp]||EQ_PRESETS.flat;
+  eqBands.forEach((b,i)=>{ b.gain.value=p[i]; const d=eqWrap.children[i], sl=d.querySelector('input'), g=d.querySelector('.eq-g'); sl.value=p[i]; g.textContent=(p[i]>0?'+':'')+p[i]; });
+  toast('EQ: '+btn.textContent); }; });
+
+/* ============================================================
+   SMART BUTTONS — γρήγορες ενέργειες κονσόλας
+   ============================================================ */
+let bassKilled=false;
+document.getElementById('killBass').onclick=function(){ bassKilled=!bassKilled; this.classList.toggle('active',bassKilled);
+  ['A','B'].forEach(id=>{ const sl=document.querySelector('[data-fx="lo"][data-deck="'+id+'"]'); decks[id].lo.gain.value = bassKilled ? -26 : parseFloat(sl.value); });
+  toast(bassKilled?'Μπάσα κομμένα':'Μπάσα πίσω'); };
+document.querySelectorAll('[data-smart]').forEach(b=> b.onclick=()=>{
+  const a=b.dataset.smart;
+  if(a==='brakeA'){ decks.A.brake(); }
+  else if(a==='brakeB'){ decks.B.brake(); }
+  else if(a==='cut'){ const x=parseFloat(xf.value); animateXfader(x<0.5?1:0,180); }
+  else if(a==='center'){ animateXfader(0.5,260); }
+  else if(a==='syncB'){ if(syncDeck('B','A')){ decks.B.seek(decks.B.cuePoint||0); decks.B.play(); toast('Sync + Play B'); } else toast('Χρειάζονται 2 κομμάτια με BPM'); }
+  else if(a==='loop4'){ const d=decks.A.playing?decks.A:(decks.B.playing?decks.B:null); if(d){ d.setLoop(4); toast('Insta-Loop 4 μπιτ'); } else toast('Κανένα deck δεν παίζει'); }
+});
+
+/* ---------- PWA service worker ---------- */
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+/* ---------- render loop ---------- */
+const mbuf=new Uint8Array(masterAnalyser.frequencyBinCount);
+function level(analyser,buf){ analyser.getByteFrequencyData(buf); let s=0; for(let i=0;i<buf.length;i++)s+=buf[i]; return s/buf.length/255; }
+const abuf=new Uint8Array(decks.A.analyser.frequencyBinCount);
+const bbuf=new Uint8Array(decks.B.analyser.frequencyBinCount);
+
+function tick(){
+  ['A','B'].forEach(id=>{
+    const d=decks[id];
+    if(d.buffer){
+      let pos=d.position;
+      if(d.loop && pos>d.loop.end) pos=d.loop.start+((pos-d.loop.start)%(d.loop.end-d.loop.start));
+      const prog=pos/d.duration;
+      // move playhead by repainting wave progress + line
+      paintWave(id, Math.max(0,Math.min(1,prog)));
+      drawZoom(id, pos);
+      const ph=document.querySelector(`.wave-wrap[data-deck="${id}"] .playhead`);
+      ph.style.left=(prog*100)+'%';
+      document.getElementById('time'+id).textContent=fmt(pos)+' / '+fmt(d.duration);
+      // spinning vinyl + tonearm tracking
+      const tt=document.querySelector(`.turntable[data-deck="${id}"]`);
+      const vinyl=document.querySelector(`.vinyl[data-deck="${id}"]`);
+      const arm=tt.querySelector('.tonearm');
+      if(d.playing){
+        tt.classList.add('playing');
+        vinyl.style.transform=`rotate(${(pos*d.rate*198)%360}deg)`; // ~33⅓ rpm feel
+        arm.style.transform=`rotate(${-16+prog*14}deg)`; // track inward with progress
+      } else {
+        tt.classList.remove('playing');
+        arm.style.transform=''; // lift back to rest (CSS)
+      }
+    }
+  });
+  const la=level(decks.A.analyser,abuf), lb=level(decks.B.analyser,bbuf), lm=level(masterAnalyser,mbuf);
+  const setVU=(id,l)=>{ document.getElementById('vu'+id).style.width=(l*130)+'%';
+    document.getElementById('ndl'+id).style.transform='rotate('+(-52+Math.min(1,l*1.35)*104)+'deg)'; };
+  setVU('A',la); setVU('B',lb); setVU('M',lm);
+  // κουκκίδα ενεργού ήχου στις καρτέλες
+  const td=document.querySelector('.tab[data-page="decks"]'); if(td) td.classList.toggle('audio', decks.A.playing||decks.B.playing);
+  const tb=document.querySelector('.tab[data-page="band"]'); if(tb) tb.classList.toggle('audio', bandPlaying);
+  drawViz(mbuf);
+  requestAnimationFrame(tick);
+}
+tick();
+
+window.addEventListener('resize',()=>{ ['A','B'].forEach(id=>{ if(decks[id].buffer) drawWave(id,decks[id].buffer); }); });
+document.body.addEventListener('click',()=>{ if(AC.state==='suspended')AC.resume(); },{once:true});
+</script>
+</body>
+</html>
