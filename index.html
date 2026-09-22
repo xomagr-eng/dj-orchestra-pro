@@ -2221,12 +2221,14 @@ function playNote(freq, inst){
     if(guitarType==='electric' && guitarDist!=='clean'){ try{g.disconnect(instGain);}catch(e){} g.connect(gtDist); } // πετάλι distortion
     o1.start(t);o2.start(t);o1.stop(t+GT.dec+.1);o2.stop(t+GT.dec+.1);
   } else if(inst==='bass'){
-    flt.type='lowpass'; flt.frequency.value=700;
+    flt.type='lowpass'; flt.frequency.value=1100;
     const o1=AC.createOscillator(); o1.type='triangle'; o1.frequency.value=freq/2;
     const o2=AC.createOscillator(); o2.type='sine'; o2.frequency.value=freq/2;
+    const o3=AC.createOscillator(); o3.type='triangle'; o3.frequency.value=freq;  // παρουσία μία οκτάβα πάνω (ακούγεται & σε μικρά ηχεία)
+    const g3=AC.createGain(); g3.gain.value=0.28; o3.connect(g3); g3.connect(flt);
     o1.connect(flt);o2.connect(flt);flt.connect(g);
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.6,t+.01); g.gain.exponentialRampToValueAtTime(.0008,t+.9);
-    o1.start(t);o2.start(t);o1.stop(t+1);o2.stop(t+1);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.95,t+.01); g.gain.exponentialRampToValueAtTime(.0008,t+1.0);
+    o1.start(t);o2.start(t);o3.start(t);o1.stop(t+1.1);o2.stop(t+1.1);o3.stop(t+1.1);
   } else if(inst==='clarinet'){ // κλαρίνο: κοίλος ξύλινος ήχος (μονά αρμονικά) + απαλό vibrato
     flt.type='lowpass'; flt.frequency.value=2200;
     const o1=AC.createOscillator(); o1.type='square'; o1.frequency.value=freq;
@@ -2791,7 +2793,7 @@ document.getElementById('octUp').onclick=()=>setOct(pianoBaseOct+1);
    ============================================================ */
 const bandGain=AC.createGain(); bandGain.gain.value=0.85; bandGain.connect(master);
 const drumsGain=AC.createGain(); drumsGain.gain.value=1; drumsGain.connect(bandGain);
-const bassGain=AC.createGain(); bassGain.gain.value=0.9; bassGain.connect(bandGain);
+const bassGain=AC.createGain(); bassGain.gain.value=1.25; bassGain.connect(bandGain);
 const chordsGain=AC.createGain(); chordsGain.gain.value=0.6; chordsGain.connect(bandGain);
 const layerOn={drums:true,bass:true,chords:true};
 let metroOn=false;
@@ -2831,7 +2833,7 @@ function bCrash(t){ const s=AC.createBufferSource(); s.buffer=noiseBuf(1.2); con
 // fill: snare/tom roll building to the end of the bar
 const FILL={kick:'1000000000000000', snare:'0000001010111111', hat:'1010000000000000'};
 const FILL_TOMS=[60,60,62,62,64,65,67,69]; // ανεβαίνει προς το τέλος
-function bBass(midi,t,dur){ const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter(); f.type='lowpass';f.frequency.value=600; o.type='triangle';o2.type='sine'; const fr=midiFreq(midi); o.frequency.value=fr;o2.frequency.value=fr; o.connect(f);o2.connect(f);f.connect(g);g.connect(bassGain); g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.6,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+dur); o.start(t);o2.start(t);o.stop(t+dur+.05);o2.stop(t+dur+.05); }
+function bBass(midi,t,dur){ const o=AC.createOscillator(),o2=AC.createOscillator(),o3=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter(); f.type='lowpass';f.frequency.value=950; o.type='triangle';o2.type='sine';o3.type='triangle'; const fr=midiFreq(midi); o.frequency.value=fr;o2.frequency.value=fr;o3.frequency.value=fr*2; const g3=AC.createGain(); g3.gain.value=0.3; o3.connect(g3); g3.connect(f); o.connect(f);o2.connect(f);f.connect(g);g.connect(bassGain); g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.9,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+dur); o.start(t);o2.start(t);o3.start(t);o.stop(t+dur+.05);o2.stop(t+dur+.05);o3.stop(t+dur+.05); }
 function bChord(midis,t,dur){ const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2200; const g=AC.createGain(); f.connect(g); g.connect(chordsGain); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.4,t+.02); g.gain.setValueAtTime(.4,t+dur*0.6); g.gain.exponentialRampToValueAtTime(.001,t+dur); midis.forEach(m=>{ const o=AC.createOscillator(); o.type='triangle'; o.frequency.value=midiFreq(m); o.connect(f); o.start(t); o.stop(t+dur+.05); }); }
 
 // scheduler
@@ -2858,12 +2860,17 @@ function scheduleStep(step, time){
     if(barIsFill && step>=8 && dr.snare[step]==='1') bTom(FILL_TOMS[step-8], time); // tom roll στο fill
   }
   const deg=currentDeg();
-  if(layerOn.bass && st.bass[step]==='1'){ bBass(scaleMidi(bandKey,deg,2), time, (60/bandBpm)/2); }
+  if(layerOn.bass && st.bass[step]==='1'){
+    if(bandLiveChords && autoVoices.has('bass')){ const dly=Math.max(0,(time-AC.currentTime)*1000); setTimeout(()=>playNote(midiFreq(scaleMidi(bandKey,deg,3)),'bass'), dly); }
+    else bBass(scaleMidi(bandKey,deg,2), time, (60/bandBpm)/2);
+  }
   if(layerOn.chords && st.chord[step]==='1'){
     const triad=[scaleMidi(bandKey,deg,4),scaleMidi(bandKey,deg+2,4),scaleMidi(bandKey,deg+4,4)];
-    if(bandLiveChords && autoVoices.size){ // συγχορδίες μέσα από τα ΖΩΝΤΑΝΑ όργανα («Παίζουν μαζί»)
-      const dly=Math.max(0,(time-AC.currentTime)*1000), dir=(step%2===0)?'D':'U';
-      setTimeout(()=>{ autoVoices.forEach(v=>playChordVoice(v, triad, dir)); }, dly);
+    if(bandLiveChords && autoVoices.size){ // συγχορδίες μέσα από τα ΖΩΝΤΑΝΑ όργανα (εκτός μπάσου — παίζει στο bass layer)
+      const chordVoices=[...autoVoices].filter(v=>v!=='bass');
+      if(chordVoices.length){ const dly=Math.max(0,(time-AC.currentTime)*1000), dir=(step%2===0)?'D':'U';
+        setTimeout(()=>{ chordVoices.forEach(v=>playChordVoice(v, triad, dir)); }, dly); }
+      else bChord(triad, time, (60/bandBpm)*1.8);
     } else bChord(triad, time, (60/bandBpm)*1.8);
   }
   if(metroOn && step%4===0){ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=step===0?1500:1000; g.gain.setValueAtTime(.15,time);g.gain.exponentialRampToValueAtTime(.001,time+.05); o.connect(g);g.connect(bandGain);o.start(time);o.stop(time+.05); }
