@@ -2362,11 +2362,40 @@ const STRUM_PATTERNS={
   'Λαϊκό (D D DUDU)':[1,0,1,0,1,2,1,2],
   'Όγδοα (DUDUDUDU)':[1,2,1,2,1,2,1,2],
   'Μπαλάντα (D  D DU)':[1,0,0,1,0,1,2,0],
+  '— ΕΛΛΗΝΙΚΟΙ ΧΟΡΟΙ —':[1,0,1,0,1,0,1,0],
   'Ζεϊμπέκικο (9/8)':[1,0,1,0,1,0,1,2,0],
-  'Χασάπικο (2/4)':[1,0,1,2,1,0,1,2],
+  'Καρσιλαμάς (9/8)':[1,0,1,0,1,0,1,0,2],
+  'Απτάλικο (9/8)':[1,0,0,1,0,1,0,1,2],
+  'Χασάπικο αργό (2/4)':[1,0,1,2,1,0,1,2],
+  'Χασαποσέρβικο (γρήγορο)':[1,2,1,2,1,2,1,2],
+  'Συρτάκι':[1,0,2,1,0,2,1,2],
   'Τσιφτετέλι':[1,0,2,0,1,0,2,0],
-  'Καλαματιανό (7/8)':[1,0,0,1,0,1,0]
+  'Καλαματιανός/Συρτός (7/8)':[1,0,0,1,0,1,0],
+  'Τσάμικο (3/4)':[1,0,0,1,0,2],
+  'Στα τρία (Ήπειρος)':[1,0,0,1,0,0],
+  'Πωγωνίσιος (αργός)':[1,0,0,0,1,0,0,0],
+  'Πεντοζάλι (Κρήτη)':[1,2,1,2,1,2,1,2],
+  'Σούστα (Κρήτη)':[1,2,1,0,1,2,1,0],
+  'Χανιώτικος (Κρήτη)':[1,0,2,0,1,0,2,0],
+  'Μπάλλος (νησιώτικος)':[1,0,1,2,1,0,1,2],
+  'Ικαριώτικος':[1,2,1,0,1,2,1,0],
+  'Ζωναράδικος (Θράκη)':[1,0,1,0,1,2],
+  'Ποντιακό Τικ':[1,2,1,2,1,2,1,2],
+  'Κότσαρι (Ποντιακό)':[1,0,1,2,1,0,1,2],
+  'Σέρρα/Πυρρίχιος':[1,2,1,2,1,2,1,2],
+  'Μπεράτι (8/8)':[1,0,1,0,1,0,1,2]
 };
+// βασικό όργανο κάθε χορού (αν >1 → μπαίνουν όλα στο «Παίζουν μαζί»)
+const DANCE_INSTRUMENTS={
+  'Ζεϊμπέκικο (9/8)':['bouzouki'], 'Καρσιλαμάς (9/8)':['bouzouki','violin','clarinet'], 'Απτάλικο (9/8)':['bouzouki','violin'],
+  'Χασάπικο αργό (2/4)':['bouzouki'], 'Χασαποσέρβικο (γρήγορο)':['bouzouki'], 'Συρτάκι':['bouzouki'],
+  'Τσιφτετέλι':['bouzouki','violin','clarinet'], 'Καλαματιανός/Συρτός (7/8)':['clarinet','violin'],
+  'Τσάμικο (3/4)':['clarinet','violin'], 'Στα τρία (Ήπειρος)':['clarinet','violin'], 'Πωγωνίσιος (αργός)':['clarinet','violin'],
+  'Πεντοζάλι (Κρήτη)':['violin'], 'Σούστα (Κρήτη)':['violin'], 'Χανιώτικος (Κρήτη)':['violin'],
+  'Μπάλλος (νησιώτικος)':['violin','bouzouki'], 'Ικαριώτικος':['violin'], 'Ζωναράδικος (Θράκη)':['clarinet'],
+  'Ποντιακό Τικ':['violin'], 'Κότσαρι (Ποντιακό)':['violin'], 'Σέρρα/Πυρρίχιος':['violin'], 'Μπεράτι (8/8)':['clarinet','violin']
+};
+const INST_LABEL={piano:'Πιάνο',synth:'Synth',guitar:'Κιθάρα',bass:'Μπάσο',violin:'Βιολί',bouzouki:'Μπουζούκι',clarinet:'Κλαρίνο'};
 /* ---- ΕΝΟΠΟΙΗΜΕΝΗ αυτόματη συνοδεία (όλα τα όργανα) ---- */
 let autoTimer=null, autoSlot=0, autoBpm=90, autoSyncBand=false, autoPat='Ποπ (D DU UDU)';
 let chordProg=[], progIdx=0;
@@ -2374,6 +2403,9 @@ const PROG_PRESETS={ 'Ποπ: G D Em C':['G','D','Em','C'], 'Κλασικό: C G
 function effBpm(){ return (autoSyncBand && typeof bandBpm!=='undefined') ? bandBpm : autoBpm; }
 function syncChordBtns(){ document.querySelectorAll('#fretWrap .chord-btn').forEach(b=>b.classList.toggle('on', b.textContent===curChordName)); }
 const autoVoices=new Set(); // όργανα που παίζουν ΜΑΖΙ στη συνοδεία
+function refreshVoiceButtons(){ document.querySelectorAll('#autoAccomp [data-voice]').forEach(b=>b.classList.toggle('on', autoVoices.has(b.dataset.voice))); }
+function applyDance(name){ const di=DANCE_INSTRUMENTS[name]; if(!di) return; autoVoices.clear(); di.forEach(x=>autoVoices.add(x)); refreshVoiceButtons();
+  toast('🇬🇷 '+name+' → '+di.map(x=>INST_LABEL[x]).join(' + ')); }
 function playVoice(v,dir){
   if(!curChord||!curChord.length) return;
   if(v==='guitar'){ let notes=curChord.slice(); if(dir==='U')notes.reverse(); notes.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),'guitar'), i*26)); }
@@ -2408,7 +2440,7 @@ function renderProg(){
 function buildAutoAccomp(){
   const box=document.getElementById('autoAccomp'); if(!box) return; box.innerHTML='';
   const r1=document.createElement('div'); r1.className='strum-auto'; r1.innerHTML='<span class="kbd-hint">🎼 Αυτόματη συνοδεία:</span>';
-  const pSel=document.createElement('select'); pSel.className='sel'; Object.keys(STRUM_PATTERNS).forEach(k=>{ const o=document.createElement('option'); o.value=k;o.textContent=k; pSel.appendChild(o); }); pSel.value=autoPat; pSel.onchange=()=>autoPat=pSel.value;
+  const pSel=document.createElement('select'); pSel.className='sel'; Object.keys(STRUM_PATTERNS).forEach(k=>{ const o=document.createElement('option'); o.value=k; const di=DANCE_INSTRUMENTS[k]; o.textContent=k+(di?' · '+di.map(x=>INST_LABEL[x]).join('/'):''); pSel.appendChild(o); }); pSel.value=autoPat; pSel.onchange=()=>{ autoPat=pSel.value; applyDance(pSel.value); };
   const bpmL=document.createElement('label'); bpmL.className='song-bars'; bpmL.innerHTML='Ταχύτητα <input type="range" id="aBpm" min="50" max="180" value="'+autoBpm+'" style="width:110px"><b id="aBpmV">'+autoBpm+'</b>';
   const sync=document.createElement('button'); sync.className='btn'; sync.id='autoSyncBtn'; sync.textContent='🔗 Sync Ορχήστρα: OFF';
   sync.onclick=()=>{ autoSyncBand=!autoSyncBand; sync.textContent='🔗 Sync Ορχήστρα: '+(autoSyncBand?'ON':'OFF'); sync.classList.toggle('active',autoSyncBand); bpmL.style.opacity=autoSyncBand?'.4':'1'; toast(autoSyncBand?'Συνοδεία → BPM Ορχήστρας ('+bandBpm+')':'Συνοδεία → δικό της BPM'); };
@@ -2419,7 +2451,7 @@ function buildAutoAccomp(){
   // ensemble: ποια όργανα παίζουν ΜΑΖΙ
   const rv=document.createElement('div'); rv.className='strum-auto'; rv.innerHTML='<span class="kbd-hint">🎻 Παίζουν μαζί:</span>';
   [['piano','🎹 Πιάνο'],['synth','🎛 Synth'],['guitar','🎸 Κιθάρα'],['bass','🎸 Μπάσο'],['clarinet','🎵 Κλαρίνο'],['violin','🎻 Βιολί'],['bouzouki','🪕 Μπουζούκι']].forEach(([v,l])=>{
-    const b=document.createElement('button'); b.className='chord-btn'+(autoVoices.has(v)?' on':''); b.style.padding='6px 10px'; b.textContent=l;
+    const b=document.createElement('button'); b.className='chord-btn'+(autoVoices.has(v)?' on':''); b.style.padding='6px 10px'; b.textContent=l; b.dataset.voice=v;
     b.onclick=()=>{ if(autoVoices.has(v))autoVoices.delete(v); else autoVoices.add(v); b.classList.toggle('on'); }; rv.appendChild(b); });
   const hint=document.createElement('span'); hint.className='kbd-hint'; hint.textContent='(κανένα = μόνο το τρέχον όργανο)'; rv.appendChild(hint);
   box.appendChild(rv);
