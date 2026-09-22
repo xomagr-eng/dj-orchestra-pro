@@ -818,6 +818,7 @@
     <div class="oct-ctl"><span>Οκτάβα</span><button class="btn" id="octDown">−</button><b id="octVal">4</b><button class="btn" id="octUp">+</button></div>
     <span class="kbd-hint">Κάτω σειρά <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd>… = λευκά · <kbd>S</kbd><kbd>D</kbd><kbd>G</kbd>… = μαύρα · πάνω σειρά <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd>… = επόμενη οκτάβα</span>
   </div>
+  <div class="kbd-row" id="sampleRow"></div>
   <div id="autoAccomp" class="auto-accomp"></div>
   <div id="pianoWrap" class="piano"></div>
   <div id="drumWrap" class="drum-grid" style="display:none"></div>
@@ -2154,6 +2155,7 @@ instComp.threshold.value=-14; instComp.knee.value=8; instComp.ratio.value=4; ins
 instGain.connect(instComp); instComp.connect(master);
 document.getElementById('instVol').oninput=e=>instGain.gain.value=parseFloat(e.target.value);
 let curInst='piano', guitarType='acoustic';
+let instSamples={}; // ανά όργανο: {buffer, baseMidi, name, off} — φόρτωση πραγματικού ήχου με pitch-shift
 
 /* ---- πετάλια distortion ηλεκτρικής κιθάρας ---- */
 function makeDistCurve(k){ const n=8192,c=new Float32Array(n),deg=Math.PI/180; for(let i=0;i<n;i++){ const x=i*2/n-1; c[i]=(3+k)*x*20*deg/(Math.PI+k*Math.abs(x)); } return c; }
@@ -2186,6 +2188,14 @@ function playNote(freq, inst){
   inst = inst || curInst;
   if(AC.state==='suspended') AC.resume();
   const t=AC.currentTime+0.005, g=AC.createGain(); g.connect(instGain);
+  // ΔΕΙΓΜΑ (φορτωμένη ηχογράφηση) με pitch-shift — υπερισχύει της σύνθεσης
+  if(instSamples[inst] && !instSamples[inst].off && instSamples[inst].buffer){
+    const smp=instSamples[inst]; const src=AC.createBufferSource(); src.buffer=smp.buffer;
+    src.playbackRate.value = freq/midiFreq(smp.baseMidi);
+    const dur=Math.min(2.8, smp.buffer.duration/src.playbackRate.value);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.85,t+0.005); g.gain.setValueAtTime(0.85,t+Math.max(0.05,dur-0.08)); g.gain.linearRampToValueAtTime(0,t+dur);
+    src.connect(g); src.start(t); src.stop(t+dur+0.02); return;
+  }
   const flt=AC.createBiquadFilter();
   if(inst==='piano'){
     flt.type='lowpass'; flt.frequency.value=4000;
@@ -2482,6 +2492,39 @@ function buildAutoAccomp(){
   const seq=document.createElement('div'); seq.className='song-seq'; seq.id='progSeq'; box.appendChild(seq); renderProg();
 }
 buildAutoAccomp();
+
+/* ---- ΔΕΙΓΜΑΤΑ ανά όργανο (φόρτωση πραγματικού ήχου + pitch-shift) ---- */
+const MELODIC_INST=['piano','synth','guitar','bass','violin','bouzouki','clarinet','glockenspiel','xylophone'];
+const NN12=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function midiName(m){ return NN12[m%12]+(Math.floor(m/12)-1); }
+async function saveInstSamples(){ try{ const out={}; for(const k in instSamples){ const s=instSamples[k]; if(s&&s.blob) out[k]={baseMidi:s.baseMidi,name:s.name,off:!!s.off,blob:s.blob}; } await idbSet('instSamples',out); }catch(e){} }
+function buildSampleRow(){
+  const box=document.getElementById('sampleRow'); if(!box) return;
+  if(!MELODIC_INST.includes(curInst)){ box.style.display='none'; return; }
+  box.style.display='flex'; box.innerHTML='';
+  const lbl=document.createElement('span'); lbl.className='kbd-hint'; lbl.innerHTML='🎙 Δείγμα «'+INST_LABEL[curInst]+'»:'; box.appendChild(lbl);
+  const load=document.createElement('button'); load.className='btn'; load.textContent='📂 Φόρτωση ήχου'; box.appendChild(load);
+  const file=document.createElement('input'); file.type='file'; file.accept='audio/*'; file.style.display='none'; box.appendChild(file);
+  const bn=document.createElement('label'); bn.className='song-bars'; bn.innerHTML='Νότα δείγματος '; const bsel=document.createElement('select'); bsel.className='sel';
+  for(let m=36;m<=84;m++){ const o=document.createElement('option'); o.value=m; o.textContent=midiName(m); bsel.appendChild(o); } bn.appendChild(bsel); box.appendChild(bn);
+  bsel.value = instSamples[curInst]? instSamples[curInst].baseMidi : 69; // A4
+  bsel.onchange=()=>{ if(instSamples[curInst]){ instSamples[curInst].baseMidi=parseInt(bsel.value); saveInstSamples(); } };
+  const status=document.createElement('span'); status.className='kbd-hint'; box.appendChild(status);
+  const toggle=document.createElement('button'); toggle.className='btn'; box.appendChild(toggle);
+  const clr=document.createElement('button'); clr.className='btn'; clr.textContent='🗑'; box.appendChild(clr);
+  function refresh(){ const s=instSamples[curInst];
+    if(s&&s.buffer){ status.textContent='✓ '+(s.name||'ήχος'); toggle.style.display=''; clr.style.display='';
+      toggle.textContent=s.off?'🔈 Χρήση δείγματος':'🎛 Χρήση synth'; toggle.classList.toggle('active',!s.off); }
+    else { status.textContent='(κανένα → synth)'; toggle.style.display='none'; clr.style.display='none'; } }
+  load.onclick=()=>file.click();
+  file.onchange=async e=>{ const f=e.target.files[0]; if(!f)return; try{ const ab=await f.arrayBuffer(); const buffer=await AC.decodeAudioData(ab.slice(0));
+    instSamples[curInst]={buffer,baseMidi:parseInt(bsel.value),name:f.name.slice(0,16),off:false,blob:f}; saveInstSamples(); refresh(); toast('Δείγμα «'+INST_LABEL[curInst]+'»: '+f.name); }catch(err){ toast('Μη υποστηριζόμενος ήχος'); } };
+  toggle.onclick=()=>{ if(instSamples[curInst]){ instSamples[curInst].off=!instSamples[curInst].off; saveInstSamples(); refresh(); toast(instSamples[curInst].off?'→ synth':'→ δείγμα'); } };
+  clr.onclick=()=>{ delete instSamples[curInst]; saveInstSamples(); refresh(); toast('Αφαιρέθηκε το δείγμα'); };
+  refresh();
+}
+(async()=>{ try{ const saved=await idbGet('instSamples'); if(saved){ for(const k in saved){ try{ const it=saved[k]; const ab=await it.blob.arrayBuffer(); const buffer=await AC.decodeAudioData(ab.slice(0)); instSamples[k]={buffer,baseMidi:it.baseMidi||69,name:it.name,off:!!it.off,blob:it.blob}; }catch(e){} } buildSampleRow(); } }catch(e){} })();
+buildSampleRow();
 function bodySVG(inst){
   const W=420,H=140;
   let s='<svg class="body-bg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">'
@@ -2623,6 +2666,7 @@ document.getElementById('instSelect').onchange=e=>{
   fretWrap.style.display=(isString||isWind||isPerc)?'block':'none';
   document.getElementById('autoAccomp').style.display=(isDrums||isPerc)?'none':'block'; // συνοδεία=μελωδικά όργανα
   if(isString) buildFret(curInst); else if(isWind) buildWind(); else if(isPerc) buildToumbeleki();
+  buildSampleRow();
   updateKbdLabels();
 };
 
