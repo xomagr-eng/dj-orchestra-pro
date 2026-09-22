@@ -2154,8 +2154,8 @@ const instComp=AC.createDynamicsCompressor(); // limiter: αποτρέπει cli
 instComp.threshold.value=-14; instComp.knee.value=8; instComp.ratio.value=4; instComp.attack.value=0.003; instComp.release.value=0.2;
 instGain.connect(instComp); instComp.connect(master);
 document.getElementById('instVol').oninput=e=>instGain.gain.value=parseFloat(e.target.value);
-let curInst='piano', guitarType='acoustic';
-let instSamples={}; // ανά όργανο: {buffer, baseMidi, name, off} — φόρτωση πραγματικού ήχου με pitch-shift
+let curInst='piano', guitarType='acoustic', bouzoukiType='tetra'; // tetra=τετράχορδο C F A D · tri=τρίχορδο D A D
+let instSamples={}; // ανά όργανο: {off, samples:[{buffer,baseMidi,name,blob}]} — φόρτωση πραγματικού ήχου με pitch-shift
 
 /* ---- πετάλια distortion ηλεκτρικής κιθάρας ---- */
 function makeDistCurve(k){ const n=8192,c=new Float32Array(n),deg=Math.PI/180; for(let i=0;i<n;i++){ const x=i*2/n-1; c[i]=(3+k)*x*20*deg/(Math.PI+k*Math.abs(x)); } return c; }
@@ -2188,11 +2188,13 @@ function playNote(freq, inst){
   inst = inst || curInst;
   if(AC.state==='suspended') AC.resume();
   const t=AC.currentTime+0.005, g=AC.createGain(); g.connect(instGain);
-  // ΔΕΙΓΜΑ (φορτωμένη ηχογράφηση) με pitch-shift — υπερισχύει της σύνθεσης
-  if(instSamples[inst] && !instSamples[inst].off && instSamples[inst].buffer){
-    const smp=instSamples[inst]; const src=AC.createBufferSource(); src.buffer=smp.buffer;
-    src.playbackRate.value = freq/midiFreq(smp.baseMidi);
-    const dur=Math.min(2.8, smp.buffer.duration/src.playbackRate.value);
+  // ΔΕΙΓΜΑΤΑ (φορτωμένες ηχογραφήσεις) με pitch-shift — υπερισχύουν της σύνθεσης· διαλέγει το ΠΙΟ ΚΟΝΤΙΝΟ
+  const rec=instSamples[inst];
+  if(rec && !rec.off && rec.samples && rec.samples.length){
+    const midi=Math.round(69+12*Math.log2(freq/440));
+    let best=rec.samples[0], bd=1e9; rec.samples.forEach(s=>{ const d=Math.abs(s.baseMidi-midi); if(d<bd){bd=d;best=s;} });
+    const src=AC.createBufferSource(); src.buffer=best.buffer; src.playbackRate.value=freq/midiFreq(best.baseMidi);
+    const dur=Math.min(2.8, best.buffer.duration/src.playbackRate.value);
     g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.85,t+0.005); g.gain.setValueAtTime(0.85,t+Math.max(0.05,dur-0.08)); g.gain.linearRampToValueAtTime(0,t+dur);
     src.connect(g); src.start(t); src.stop(t+dur+0.02); return;
   }
@@ -2497,33 +2499,51 @@ buildAutoAccomp();
 const MELODIC_INST=['piano','synth','guitar','bass','violin','bouzouki','clarinet','glockenspiel','xylophone'];
 const NN12=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 function midiName(m){ return NN12[m%12]+(Math.floor(m/12)-1); }
-async function saveInstSamples(){ try{ const out={}; for(const k in instSamples){ const s=instSamples[k]; if(s&&s.blob) out[k]={baseMidi:s.baseMidi,name:s.name,off:!!s.off,blob:s.blob}; } await idbSet('instSamples',out); }catch(e){} }
+const SAMPLE_SOURCES=[
+  ['🎻 University of Iowa (μεμονωμένες νότες, ΟΛΑ τα ορχηστρικά, ελεύθερα)','https://theremin.music.uiowa.edu/MIS.html'],
+  ['🎼 Versilian VSCO 2 Community Edition (CC0, όλη η ορχήστρα)','https://versilian-studios.com/vsco-community/'],
+  ['🪕 Freesound — Μπουζούκι (CC0)','https://freesound.org/search/?q=bouzouki&f=license:%22Creative+Commons+0%22'],
+  ['🔎 Freesound — όλα τα CC0','https://freesound.org/search/?f=license:%22Creative+Commons+0%22'],
+  ['🎺 Signature Sounds — Orchestral CC0','https://signaturesounds.org/store/p/orchestral-cc0'],
+  ['🎻 Free Wave Samples — Violin','https://freewavesamples.com/instrument/violin']
+];
+async function saveInstSamples(){ try{ const out={}; for(const k in instSamples){ const r=instSamples[k]; if(r&&r.samples&&r.samples.length) out[k]={off:!!r.off, samples:r.samples.map(s=>({baseMidi:s.baseMidi,name:s.name,blob:s.blob}))}; } await idbSet('instSamples',out); }catch(e){} }
 function buildSampleRow(){
   const box=document.getElementById('sampleRow'); if(!box) return;
   if(!MELODIC_INST.includes(curInst)){ box.style.display='none'; return; }
   box.style.display='flex'; box.innerHTML='';
-  const lbl=document.createElement('span'); lbl.className='kbd-hint'; lbl.innerHTML='🎙 Δείγμα «'+INST_LABEL[curInst]+'»:'; box.appendChild(lbl);
-  const load=document.createElement('button'); load.className='btn'; load.textContent='📂 Φόρτωση ήχου'; box.appendChild(load);
-  const file=document.createElement('input'); file.type='file'; file.accept='audio/*'; file.style.display='none'; box.appendChild(file);
-  const bn=document.createElement('label'); bn.className='song-bars'; bn.innerHTML='Νότα δείγματος '; const bsel=document.createElement('select'); bsel.className='sel';
-  for(let m=36;m<=84;m++){ const o=document.createElement('option'); o.value=m; o.textContent=midiName(m); bsel.appendChild(o); } bn.appendChild(bsel); box.appendChild(bn);
-  bsel.value = instSamples[curInst]? instSamples[curInst].baseMidi : 69; // A4
-  bsel.onchange=()=>{ if(instSamples[curInst]){ instSamples[curInst].baseMidi=parseInt(bsel.value); saveInstSamples(); } };
-  const status=document.createElement('span'); status.className='kbd-hint'; box.appendChild(status);
+  const lbl=document.createElement('span'); lbl.className='kbd-hint'; lbl.innerHTML='🎙 Δείγματα «'+INST_LABEL[curInst]+'»:'; box.appendChild(lbl);
+  const bn=document.createElement('label'); bn.className='song-bars'; bn.innerHTML='Νότα '; const bsel=document.createElement('select'); bsel.className='sel';
+  for(let m=36;m<=84;m++){ const o=document.createElement('option'); o.value=m; o.textContent=midiName(m); bsel.appendChild(o); } bsel.value=69; bn.appendChild(bsel); box.appendChild(bn);
+  const load=document.createElement('button'); load.className='btn'; load.textContent='📂 Προσθήκη ήχου'; box.appendChild(load);
+  const file=document.createElement('input'); file.type='file'; file.accept='audio/*'; file.multiple=true; file.style.display='none'; box.appendChild(file);
   const toggle=document.createElement('button'); toggle.className='btn'; box.appendChild(toggle);
-  const clr=document.createElement('button'); clr.className='btn'; clr.textContent='🗑'; box.appendChild(clr);
-  function refresh(){ const s=instSamples[curInst];
-    if(s&&s.buffer){ status.textContent='✓ '+(s.name||'ήχος'); toggle.style.display=''; clr.style.display='';
-      toggle.textContent=s.off?'🔈 Χρήση δείγματος':'🎛 Χρήση synth'; toggle.classList.toggle('active',!s.off); }
-    else { status.textContent='(κανένα → synth)'; toggle.style.display='none'; clr.style.display='none'; } }
+  const clr=document.createElement('button'); clr.className='btn'; clr.textContent='🗑 Όλα'; box.appendChild(clr);
+  const srcBtn=document.createElement('button'); srcBtn.className='btn'; srcBtn.textContent='🔗 Πηγές samples'; box.appendChild(srcBtn);
+  const chips=document.createElement('div'); chips.className='song-seq'; chips.style.flexBasis='100%'; box.appendChild(chips);
+  const srcPanel=document.createElement('div'); srcPanel.style.flexBasis='100%'; srcPanel.style.display='none'; srcPanel.className='hint';
+  srcPanel.innerHTML='<b>Δωρεάν CC0 samples</b> (φόρτωσε ΜΙΑ νότα ανά όργανο, δήλωσε τη «Νότα», απλώνεται παντού):<br>'+
+    SAMPLE_SOURCES.map(([t,u])=>'• <a href="'+u+'" target="_blank" rel="noopener" style="color:var(--accent2)">'+t+'</a>').join('<br>');
+  box.appendChild(srcPanel);
+  srcBtn.onclick=()=>{ srcPanel.style.display = srcPanel.style.display==='none'?'block':'none'; };
+  function refresh(){ const r=instSamples[curInst]; chips.innerHTML='';
+    if(r&&r.samples&&r.samples.length){ toggle.style.display=''; clr.style.display='';
+      toggle.textContent=r.off?'🔈 Χρήση δειγμάτων':'🎛 Χρήση synth'; toggle.classList.toggle('active',!r.off);
+      r.samples.forEach((s,i)=>{ const c=document.createElement('div'); c.className='song-chip'; c.innerHTML='<span>'+midiName(s.baseMidi)+' · '+(s.name||'ήχος')+'</span> <span class="x">✕</span>';
+        c.querySelector('.x').onclick=()=>{ r.samples.splice(i,1); if(!r.samples.length) delete instSamples[curInst]; saveInstSamples(); refresh(); }; chips.appendChild(c); });
+    } else { toggle.style.display='none'; clr.style.display='none'; chips.innerHTML='<span class="song-empty">Κανένα δείγμα → παίζει synth. Πρόσθεσε ήχους (π.χ. χαμηλή/μεσαία/ψηλή νότα) για ρεαλισμό.</span>'; } }
   load.onclick=()=>file.click();
-  file.onchange=async e=>{ const f=e.target.files[0]; if(!f)return; try{ const ab=await f.arrayBuffer(); const buffer=await AC.decodeAudioData(ab.slice(0));
-    instSamples[curInst]={buffer,baseMidi:parseInt(bsel.value),name:f.name.slice(0,16),off:false,blob:f}; saveInstSamples(); refresh(); toast('Δείγμα «'+INST_LABEL[curInst]+'»: '+f.name); }catch(err){ toast('Μη υποστηριζόμενος ήχος'); } };
-  toggle.onclick=()=>{ if(instSamples[curInst]){ instSamples[curInst].off=!instSamples[curInst].off; saveInstSamples(); refresh(); toast(instSamples[curInst].off?'→ synth':'→ δείγμα'); } };
-  clr.onclick=()=>{ delete instSamples[curInst]; saveInstSamples(); refresh(); toast('Αφαιρέθηκε το δείγμα'); };
+  file.onchange=async e=>{ let base=parseInt(bsel.value); for(const f of e.target.files){ try{ const ab=await f.arrayBuffer(); const buffer=await AC.decodeAudioData(ab.slice(0));
+    if(!instSamples[curInst]) instSamples[curInst]={off:false,samples:[]}; instSamples[curInst].off=false;
+    instSamples[curInst].samples.push({buffer,baseMidi:base,name:f.name.slice(0,16),blob:f}); }catch(err){ toast('Παράλειψη: '+f.name); } }
+    instSamples[curInst]&&instSamples[curInst].samples.sort((a,b)=>a.baseMidi-b.baseMidi); saveInstSamples(); refresh(); toast('Δείγμα(τα) «'+INST_LABEL[curInst]+'»'); e.target.value=''; };
+  toggle.onclick=()=>{ const r=instSamples[curInst]; if(r){ r.off=!r.off; saveInstSamples(); refresh(); toast(r.off?'→ synth':'→ δείγματα'); } };
+  clr.onclick=()=>{ delete instSamples[curInst]; saveInstSamples(); refresh(); toast('Αφαιρέθηκαν τα δείγματα'); };
   refresh();
 }
-(async()=>{ try{ const saved=await idbGet('instSamples'); if(saved){ for(const k in saved){ try{ const it=saved[k]; const ab=await it.blob.arrayBuffer(); const buffer=await AC.decodeAudioData(ab.slice(0)); instSamples[k]={buffer,baseMidi:it.baseMidi||69,name:it.name,off:!!it.off,blob:it.blob}; }catch(e){} } buildSampleRow(); } }catch(e){} })();
+(async()=>{ try{ const saved=await idbGet('instSamples'); if(saved){ for(const k in saved){ try{ const it=saved[k]; const arr=it.samples||[]; const decoded=[];
+  for(const s of arr){ try{ const ab=await s.blob.arrayBuffer(); const buffer=await AC.decodeAudioData(ab.slice(0)); decoded.push({buffer,baseMidi:s.baseMidi||69,name:s.name,blob:s.blob}); }catch(e){} }
+  if(decoded.length) instSamples[k]={off:!!it.off, samples:decoded}; }catch(e){} } buildSampleRow(); } }catch(e){} })();
 buildSampleRow();
 function bodySVG(inst){
   const W=420,H=140;
@@ -2554,7 +2574,8 @@ function bodySVG(inst){
   return s+'</svg>';
 }
 function buildFret(inst){
-  const tuning=TUNINGS[inst]||TUNINGS.guitar;
+  let tuning=TUNINGS[inst]||TUNINGS.guitar;
+  if(inst==='bouzouki') tuning = (bouzoukiType==='tri') ? [50,57,62] : [48,53,57,62]; // τρίχορδο D-A-D / τετράχορδο C-F-A-D
   autoStrumStop(); fretWrap.innerHTML='';
   // ---- κεφαλίδα: τύπος κιθάρας + συγχορδίες ----
   const head=document.createElement('div'); head.className='fret-head';
@@ -2574,6 +2595,12 @@ function buildFret(inst){
       p.onclick=()=>{ setGuitarDist(v); if(v!=='clean'){ guitarType='electric'; gt.value='electric'; } pedals.querySelectorAll('.chord-btn').forEach(x=>x.classList.remove('on')); p.classList.add('on'); toast('Πετάλι: '+l+(v!=='clean'?' (ηλεκτρική)':'')); }; pedals.appendChild(p); });
     head.appendChild(pedals);
   } else { const nm={bass:'Μπάσο',violin:'Βιολί',bouzouki:'Μπουζούκι'}[inst]||inst;
+    if(inst==='bouzouki'){
+      const bt=document.createElement('select'); bt.className='sel';
+      [['tetra','🪕 Τετράχορδο (C-F-A-D)'],['tri','🪕 Τρίχορδο (D-A-D)']].forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v;o.textContent=l; bt.appendChild(o); });
+      bt.value=bouzoukiType; bt.onchange=()=>{ bouzoukiType=bt.value; toast('Μπουζούκι: '+bt.options[bt.selectedIndex].text); buildFret('bouzouki'); };
+      head.appendChild(bt);
+    }
     const lbl=document.createElement('span'); lbl.className='kbd-hint'; lbl.textContent=nm+' — άγγιξε χορδές/τάστα, σύρε την πένα, ή βάλε αυτόματη ακολουθία πιο πάνω'; head.appendChild(lbl); }
   fretWrap.appendChild(head);
   // ---- σώμα οργάνου με χορδές (strum με ποντίκι/πένα) ----
