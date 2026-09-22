@@ -2,6 +2,19 @@
 
 Κονσόλα DJ + Ορχήστρα + ζωντανά όργανα — offline PWA (Web Audio).
 
-**Live:** https://xomagr-eng.github.io/dj-orchestra-pro/
+**▶ Live:** https://xomagr-eng.github.io/dj-orchestra-pro/
 
-Άνοιξε το link σε PC/κινητό/tablet. Στο κινητό/tablet μπορείς να το «εγκαταστήσεις» ως εφαρμογή (Add to Home Screen).
+## 📱 Άνοιξέ το από κινητό/tablet — σκάναρε το QR
+
+<img src="qr.png" alt="QR code — DJ ORCHESTRA PRO" width="220">
+
+Σκάναρε τον κωδικό με την κάμερα του κινητού και άνοιξε το link. Μετά, πάτησε **«Προσθήκη στην αρχική οθόνη / Install»** για να μπει σαν εφαρμογή (δουλεύει και offline).
+
+## Τι περιλαμβάνει
+- 2 DJ decks (waveforms, beatgrid, BPM/key, sync, auto-mix), μείκτης + 8-band EQ, sampler, soundboard, εγγραφή
+- Ορχήστρα (ρυθμομηχανή) με ελληνικούς χορούς (ζεϊμπέκικο, τσιφτετέλι, χασάπικο κ.ά.)
+- Ζωντανά όργανα: πιάνο, synth, κιθάρα (με πετάλια distortion), μπάσο, βιολί, μπουζούκι (τρίχορδο/τετράχορδο), κλαρίνο, τουμπελέκι, γκλοκενσπίλ, ξυλόφωνο
+- Αυτόματη συνοδεία (άρπα μία-μία χορδή) + ensemble «παίζουν μαζί»
+- Φόρτωση δικών σου samples ανά όργανο (με pitch-shift) — για 100% ρεαλιστικό ήχο
+
+Όλα offline, τοπικά — τίποτα δεν ανεβαίνει πουθενά.
