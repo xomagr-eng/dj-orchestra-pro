@@ -830,6 +830,7 @@
   <div class="sec-title">
     <h3>🥁 ΟΡΧΗΣΤΡΑ <span>αυτόματος ρυθμός + μπάσο + συγχορδίες — παίξε lead από τα Όργανα από πάνω</span></h3>
     <div class="k-tools">
+      <button class="btn" id="bandLiveBtn" title="Οι συγχορδίες να παίζουν μέσα από τα ζωντανά όργανα (Παίζουν μαζί) αντί για εσωτερικό synth">🎻 Ζωντανά όργανα: OFF</button>
       <button class="btn" id="bandRec" title="Ηχογράφηση μόνο της ορχήστρας σε αρχείο">🎙 Εγγραφή ορχήστρας</button>
       <button class="btn" id="bandPlay">▶ Έναρξη</button>
     </div>
@@ -2450,15 +2451,14 @@ function refreshVoiceButtons(){ document.querySelectorAll('#autoAccomp [data-voi
 function applyDance(name){ const di=DANCE_INSTRUMENTS[name]; if(!di) return; autoVoices.clear(); di.forEach(x=>autoVoices.add(x)); refreshVoiceButtons();
   toast('🇬🇷 '+name+' → '+di.map(x=>INST_LABEL[x]).join(' + ')); }
 let autoArp=true; // true=άρπα (μία-μία χορδή, σαν αληθινό μπουζούκι) · false=μπλοκ (όλες μαζί)
-function playVoice(v,dir){
-  if(!curChord||!curChord.length) return;
-  if(v==='bass'){ playNote(midiFreq(curChord[0]),'bass'); return; } // μπάσο = ρίζα
-  let notes=curChord.slice(); if(dir==='U') notes.reverse();
-  if(autoArp){ // μία-μία νότα/χορδή με μικρή καθυστέρηση (πλουκ σαν πραγματικό όργανο)
-    const sp=(v==='guitar'||v==='bouzouki')?30:24;
-    notes.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),v), i*sp));
-  } else notes.forEach(m=>playNote(midiFreq(m),v)); // μπλοκ συγχορδία
+function playChordVoice(v, chordNotes, dir){ // παίζει δοσμένη συγχορδία με ένα ζωντανό όργανο
+  if(!chordNotes||!chordNotes.length) return;
+  if(v==='bass'){ playNote(midiFreq(chordNotes[0]),'bass'); return; } // μπάσο = ρίζα
+  let notes=chordNotes.slice(); if(dir==='U') notes.reverse();
+  if(autoArp){ const sp=(v==='guitar'||v==='bouzouki')?30:24; notes.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),v), i*sp)); }
+  else notes.forEach(m=>playNote(midiFreq(m),v));
 }
+function playVoice(v,dir){ playChordVoice(v, curChord, dir); }
 function autoPlayChord(dir){
   const voices = autoVoices.size ? [...autoVoices] : [curInst]; // αν κανένα δεν επιλέχθηκε → το τρέχον όργανο
   voices.forEach(v=>playVoice(v,dir));
@@ -2839,6 +2839,7 @@ let bandPlaying=false, bandStep=0, bandBar=0, nextStepTime=0, bandBpm=100, bandT
 let bandStyle='Pop', bandKey=0, bandProg='I–V–vi–IV (Pop)';
 let activePattern=null; // τρέχον ενεργό μοτίβο (working copy)
 let swing=0, fillEvery=8, fillQueued=false, barIsFill=false, lastBarFill=false;
+let bandLiveChords=false; // true = οι συγχορδίες παίζουν μέσα από τα ζωντανά όργανα («Παίζουν μαζί»)
 function clonePat(p){ return {kick:p.kick,snare:p.snare,hat:p.hat,bass:p.bass,chord:p.chord}; }
 function emptyPat(){ const z='0000000000000000'; return {kick:z,snare:z,hat:z,bass:z,chord:z}; }
 function currentDeg(){ const p=PROGRESSIONS[bandProg]; return p[bandBar % p.length]; }
@@ -2858,7 +2859,13 @@ function scheduleStep(step, time){
   }
   const deg=currentDeg();
   if(layerOn.bass && st.bass[step]==='1'){ bBass(scaleMidi(bandKey,deg,2), time, (60/bandBpm)/2); }
-  if(layerOn.chords && st.chord[step]==='1'){ bChord([scaleMidi(bandKey,deg,4),scaleMidi(bandKey,deg+2,4),scaleMidi(bandKey,deg+4,4)], time, (60/bandBpm)*1.8); }
+  if(layerOn.chords && st.chord[step]==='1'){
+    const triad=[scaleMidi(bandKey,deg,4),scaleMidi(bandKey,deg+2,4),scaleMidi(bandKey,deg+4,4)];
+    if(bandLiveChords && autoVoices.size){ // συγχορδίες μέσα από τα ΖΩΝΤΑΝΑ όργανα («Παίζουν μαζί»)
+      const dly=Math.max(0,(time-AC.currentTime)*1000), dir=(step%2===0)?'D':'U';
+      setTimeout(()=>{ autoVoices.forEach(v=>playChordVoice(v, triad, dir)); }, dly);
+    } else bChord(triad, time, (60/bandBpm)*1.8);
+  }
   if(metroOn && step%4===0){ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=step===0?1500:1000; g.gain.setValueAtTime(.15,time);g.gain.exponentialRampToValueAtTime(.001,time+.05); o.connect(g);g.connect(bandGain);o.start(time);o.stop(time+.05); }
   const delay=Math.max(0,(time-AC.currentTime)*1000);
   setTimeout(()=>{ lightStep(step); if(step===0) document.getElementById('nowChord').textContent=chordName(bandKey,deg); }, delay);
@@ -2979,6 +2986,8 @@ document.getElementById('bandRec').onclick=function(){
   prSel.onchange=()=>{ bandProg=prSel.value; bandBar=0; };
   const bpm=document.getElementById('bandBpm'); bpm.oninput=()=>{ bandBpm=parseInt(bpm.value); document.getElementById('bandBpmVal').textContent=bandBpm; };
   document.getElementById('bandPlay').onclick=()=> bandPlaying?bandStop():bandStart();
+  document.getElementById('bandLiveBtn').onclick=function(){ bandLiveChords=!bandLiveChords; this.textContent='🎻 Ζωντανά όργανα: '+(bandLiveChords?'ON':'OFF'); this.classList.toggle('active',bandLiveChords);
+    toast(bandLiveChords ? 'Συγχορδίες → ζωντανά όργανα («Παίζουν μαζί» στα Όργανα)' : 'Συγχορδίες → εσωτερικό synth ορχήστρας'); };
   document.querySelectorAll('.layer-toggle').forEach(b=>{ const lyEl=b.closest('.layer'); const layer=lyEl&&lyEl.dataset.layer; if(!layer) return;
     b.onclick=()=>{ layerOn[layer]=!layerOn[layer]; b.classList.toggle('on',layerOn[layer]); }; });
   document.getElementById('metroToggle').onclick=function(){ metroOn=!metroOn; this.classList.toggle('on',metroOn); };
