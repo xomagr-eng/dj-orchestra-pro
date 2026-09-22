@@ -2380,7 +2380,8 @@ const FRETS=15; // πλήρης λαιμός (κύλιση οριζόντια)
 const FRET_MARKERS={3:1,5:1,7:1,9:1,12:2,15:1}; // 2=διπλή τελεία
 const CHORDS={ // MIDI για strum (κιθάρα)
   'E':[40,47,52,56,59,64], 'A':[45,52,57,61,64,69], 'D':[50,57,62,66,74], 'G':[43,47,50,55,59,67],
-  'C':[48,52,55,60,64,72], 'Am':[45,52,57,60,64,69], 'Em':[40,47,52,55,59,64], 'Dm':[50,57,62,65,74] };
+  'C':[48,52,55,60,64,72], 'Am':[45,52,57,60,64,69], 'Em':[40,47,52,55,59,64], 'Dm':[50,57,62,65,74],
+  'F':[41,48,53,57,60,65], 'Bm':[47,54,59,62,66,71] };
 let curChord=CHORDS['E'].slice(), curChordName='E';
 function strumChord(dir){ let notes=curChord.slice(); if(dir==='U') notes.reverse();
   notes.forEach((m,i)=> setTimeout(()=>playNote(midiFreq(m)), i*26)); }
@@ -2428,18 +2429,35 @@ const INST_LABEL={piano:'Πιάνο',synth:'Synth',guitar:'Κιθάρα',bass:'�
 /* ---- ΕΝΟΠΟΙΗΜΕΝΗ αυτόματη συνοδεία (όλα τα όργανα) ---- */
 let autoTimer=null, autoSlot=0, autoBpm=90, autoSyncBand=false, autoPat='Ποπ (D DU UDU)';
 let chordProg=[], progIdx=0;
-const PROG_PRESETS={ 'Ποπ: G D Em C':['G','D','Em','C'], 'Κλασικό: C G Am Dm':['C','G','Am','Dm'], 'Ροκ: E A D A':['E','A','D','A'], 'Λαϊκό: Am Dm E Am':['Am','Dm','E','Am'] };
+const PROG_PRESETS={
+  'Ποπ 4 (C G Am F)':['C','G','Am','F'],
+  'Ποπ (G D Em C)':['G','D','Em','C'],
+  'Doo-wop (C Am F G)':['C','Am','F','G'],
+  '50s (C Am F G)':['C','Am','F','G'],
+  'Ανδαλουσιανή (Am G F E)':['Am','G','F','E'],
+  'Κανόνας/Pachelbel (D A Bm G)':['D','A','Bm','G'],
+  'Jazz ii–V–I (Dm G C)':['Dm','G','C'],
+  'Μπλουζ 12-μπαρο (A A D A)':['A','A','D','A','A','A','A','A','D','D','A','A','E','D','A','E'],
+  'Κλασικό (C G Am Dm)':['C','G','Am','Dm'],
+  'Ροκ (E A D A)':['E','A','D','A'],
+  'Λαϊκό μινόρε (Am Dm E Am)':['Am','Dm','E','Am'],
+  'Ρεμπέτικο (Dm Am E Am)':['Dm','Am','E','Am']
+};
 function effBpm(){ return (autoSyncBand && typeof bandBpm!=='undefined') ? bandBpm : autoBpm; }
 function syncChordBtns(){ document.querySelectorAll('#fretWrap .chord-btn').forEach(b=>b.classList.toggle('on', b.textContent===curChordName)); }
 const autoVoices=new Set(); // όργανα που παίζουν ΜΑΖΙ στη συνοδεία
 function refreshVoiceButtons(){ document.querySelectorAll('#autoAccomp [data-voice]').forEach(b=>b.classList.toggle('on', autoVoices.has(b.dataset.voice))); }
 function applyDance(name){ const di=DANCE_INSTRUMENTS[name]; if(!di) return; autoVoices.clear(); di.forEach(x=>autoVoices.add(x)); refreshVoiceButtons();
   toast('🇬🇷 '+name+' → '+di.map(x=>INST_LABEL[x]).join(' + ')); }
+let autoArp=true; // true=άρπα (μία-μία χορδή, σαν αληθινό μπουζούκι) · false=μπλοκ (όλες μαζί)
 function playVoice(v,dir){
   if(!curChord||!curChord.length) return;
-  if(v==='guitar'){ let notes=curChord.slice(); if(dir==='U')notes.reverse(); notes.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),'guitar'), i*26)); }
-  else if(v==='bass'){ playNote(midiFreq(curChord[0]),'bass'); } // (το playNote bass κατεβάζει οκτάβα)
-  else { if(dir==='U') curChord.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),v), i*16)); else curChord.forEach(m=>playNote(midiFreq(m),v)); }
+  if(v==='bass'){ playNote(midiFreq(curChord[0]),'bass'); return; } // μπάσο = ρίζα
+  let notes=curChord.slice(); if(dir==='U') notes.reverse();
+  if(autoArp){ // μία-μία νότα/χορδή με μικρή καθυστέρηση (πλουκ σαν πραγματικό όργανο)
+    const sp=(v==='guitar'||v==='bouzouki')?30:24;
+    notes.forEach((m,i)=>setTimeout(()=>playNote(midiFreq(m),v), i*sp));
+  } else notes.forEach(m=>playNote(midiFreq(m),v)); // μπλοκ συγχορδία
 }
 function autoPlayChord(dir){
   const voices = autoVoices.size ? [...autoVoices] : [curInst]; // αν κανένα δεν επιλέχθηκε → το τρέχον όργανο
@@ -2473,9 +2491,11 @@ function buildAutoAccomp(){
   const bpmL=document.createElement('label'); bpmL.className='song-bars'; bpmL.innerHTML='Ταχύτητα <input type="range" id="aBpm" min="50" max="180" value="'+autoBpm+'" style="width:110px"><b id="aBpmV">'+autoBpm+'</b>';
   const sync=document.createElement('button'); sync.className='btn'; sync.id='autoSyncBtn'; sync.textContent='🔗 Sync Ορχήστρα: OFF';
   sync.onclick=()=>{ autoSyncBand=!autoSyncBand; sync.textContent='🔗 Sync Ορχήστρα: '+(autoSyncBand?'ON':'OFF'); sync.classList.toggle('active',autoSyncBand); bpmL.style.opacity=autoSyncBand?'.4':'1'; toast(autoSyncBand?'Συνοδεία → BPM Ορχήστρας ('+bandBpm+')':'Συνοδεία → δικό της BPM'); };
+  const arp=document.createElement('button'); arp.className='btn'+(autoArp?' active':''); arp.textContent=autoArp?'🎵 Άρπα (μία-μία)':'🎹 Μπλοκ (μαζί)';
+  arp.onclick=()=>{ autoArp=!autoArp; arp.textContent=autoArp?'🎵 Άρπα (μία-μία)':'🎹 Μπλοκ (μαζί)'; arp.classList.toggle('active',autoArp); toast(autoArp?'Άρπα — μία-μία χορδή':'Μπλοκ — όλες μαζί'); };
   const play=document.createElement('button'); play.className='btn'; play.id='autoPlayBtn'; play.textContent='▶ Αυτόματη συνοδεία';
   play.onclick=()=>{ if(autoTimer){ autoStop(); } else { autoStart(); play.textContent='⏹ Στοπ'; play.classList.add('active'); } };
-  r1.appendChild(pSel); r1.appendChild(bpmL); r1.appendChild(sync); r1.appendChild(play); box.appendChild(r1);
+  r1.appendChild(pSel); r1.appendChild(bpmL); r1.appendChild(sync); r1.appendChild(arp); r1.appendChild(play); box.appendChild(r1);
   bpmL.querySelector('#aBpm').oninput=e=>{ autoBpm=parseInt(e.target.value); bpmL.querySelector('#aBpmV').textContent=autoBpm; };
   // ensemble: ποια όργανα παίζουν ΜΑΖΙ
   const rv=document.createElement('div'); rv.className='strum-auto'; rv.innerHTML='<span class="kbd-hint">🎻 Παίζουν μαζί:</span>';
