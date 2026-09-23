@@ -245,10 +245,11 @@
   .tonearm{position:absolute;top:-2px;right:-6px;width:96px;height:120px;pointer-events:none;
     transform-origin:82px 16px;transform:rotate(-30deg);transition:transform .5s ease}
   .turntable.playing .tonearm{transform:rotate(-14deg)}
+  .tonearm.grab{transition:none}
   .tonearm .pivot{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;
-    background:radial-gradient(circle at 40% 35%,#3a3f4d,#14161c);border:1px solid #000;box-shadow:0 2px 5px #000}
+    background:radial-gradient(circle at 40% 35%,#3a3f4d,#14161c);border:1px solid #000;box-shadow:0 2px 5px #000;pointer-events:auto;cursor:grab}
   .tonearm .arm{position:absolute;top:14px;right:15px;width:6px;height:98px;
-    background:linear-gradient(90deg,#6a7080,#c7ccd8,#6a7080);border-radius:3px;
+    background:linear-gradient(90deg,#6a7080,#c7ccd8,#6a7080);border-radius:3px;pointer-events:auto;cursor:grab;
     transform-origin:top center;transform:rotate(24deg);box-shadow:0 2px 4px rgba(0,0,0,.5)}
   .tonearm .arm::after{content:"";position:absolute;bottom:-6px;left:-3px;width:12px;height:16px;
     background:#1b1e26;border:1px solid #000;border-radius:2px}
@@ -788,6 +789,7 @@
 <section class="sampler" id="sec-soundboard">
   <div class="sec-title">
     <h3>🔊 SOUNDBOARD <span>meme-style ηχητικά εφέ (συνθετικά) · πρόσθεσε & δικά σου κλιπ που αποθηκεύονται μόνιμα</span></h3>
+    <button class="btn" id="autoPartyBtn" title="Ρίχνει τυχαία γιορτινά εφέ στον ρυθμό">🎊 Auto γιορτή</button>
     <button class="btn" id="addSoundBtn">➕ Δικός μου ήχος</button>
     <input type="file" id="soundFile" accept="audio/*" multiple>
   </div>
@@ -1576,6 +1578,26 @@ document.querySelectorAll('.vinyl').forEach(vinyl=>{
   vinyl.addEventListener('touchstart',down,{passive:false}); vinyl.addEventListener('touchmove',move,{passive:false}); vinyl.addEventListener('touchend',up);
 });
 
+/* Πικάπ: πιάσε τον βραχίονα (ακίδα) και βάλ' τον στο βινύλιο → ξεκινά· σήκωσέ τον → σταματά */
+const armDrag={A:false,B:false};
+document.querySelectorAll('.tonearm').forEach(armEl=>{
+  const id=armEl.dataset.deck; let dragging=false; const pivotEl=armEl.querySelector('.pivot');
+  function angleFor(e){ const ev=e.touches?e.touches[0]:e; const r=pivotEl.getBoundingClientRect(); const px=r.left+r.width/2, py=r.top+r.height/2;
+    let deg=Math.atan2(ev.clientX-px, ev.clientY-py)*180/Math.PI; return Math.max(-30,Math.min(-3,deg)); }
+  const down=(e)=>{ dragging=true; armDrag[id]=true; armEl.classList.add('grab'); e.preventDefault(); };
+  const move=(e)=>{ if(!dragging)return; armEl.style.transform='rotate('+angleFor(e)+'deg)'; e.preventDefault(); };
+  const up=()=>{ if(!dragging)return; dragging=false; armEl.classList.remove('grab');
+    const m=armEl.style.transform.match(/rotate\(([-\d.]+)deg\)/); const a=m?parseFloat(m[1]):-30; const d=decks[id];
+    if(a>-22){ // πάνω στο βινύλιο → παίξε (θέση ανάλογα με πού ακούμπησες)
+      if(d.buffer){ const frac=Math.max(0,Math.min(1,(a-(-17))/((-3)-(-17)))); if(!d.playing){ d.seek(frac*d.duration); d.play(); } toast('🎵 Deck '+id+' — η ακίδα στο βινύλιο'); }
+      else { armEl.style.transform=''; toast('Φόρτωσε κομμάτι στο DECK '+id); }
+      setTimeout(()=>{ armDrag[id]=false; },50);
+    } else { armDrag[id]=false; armEl.style.transform=''; if(d.playing){ d.pause(); toast('⏸ Deck '+id+' — σήκωσες την ακίδα'); } }
+  };
+  armEl.addEventListener('mousedown',down); window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  armEl.addEventListener('touchstart',down,{passive:false}); window.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+});
+
 /* SLIP toggle */
 document.querySelectorAll('.slip-btn').forEach(b=>{
   b.onclick=()=>{ const d=decks[b.dataset.deck]; d.slip=!d.slip; b.classList.toggle('on',d.slip); toast('SLIP '+b.dataset.deck+' '+(d.slip?'ON':'OFF')); };
@@ -1899,6 +1921,28 @@ const SB=[
     g.gain.setValueAtTime(.7,t); g.gain.exponentialRampToValueAtTime(.001,t+2); s.connect(f); f.connect(g); g.connect(sbGain); g.connect(sbReverb);
     const o=AC.createOscillator(),og=AC.createGain(); o.type='sine'; o.frequency.value=110; og.gain.setValueAtTime(.4,t); og.gain.exponentialRampToValueAtTime(.001,t+1.8); o.connect(og); og.connect(sbGain); o.start(t); o.stop(t+1.8);
     s.start(t); s.stop(t+2.2); }},
+  {name:'Σασπένς', emo:'🥁', fn:(t)=>{ // τυμπανοκρουσία-σασπένς: roll που δυναμώνει + sting
+    const dur=2.4;
+    for(let i=0;i<Math.floor(dur/0.045);i++){ const dt=t+i*0.045; const s=noise(.05),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='lowpass'; f.frequency.value=380;
+      const amp=0.12+0.4*(i*0.045/dur); g.gain.setValueAtTime(amp,dt); g.gain.exponentialRampToValueAtTime(.001,dt+.05);
+      s.connect(f); f.connect(g); g.connect(sbGain); s.start(dt); s.stop(dt+.05); }
+    const o=AC.createOscillator(),og=AC.createGain(); o.type='sine'; o.frequency.setValueAtTime(60,t); o.frequency.linearRampToValueAtTime(120,t+dur);
+    og.gain.setValueAtTime(.2,t); og.gain.linearRampToValueAtTime(.5,t+dur); o.connect(og); og.connect(sbGain); o.start(t); o.stop(t+dur);
+    // sting στο τέλος
+    const c=noise(.6),cf=AC.createBiquadFilter(),cg=AC.createGain(); cf.type='highpass'; cf.frequency.value=5000; cg.gain.setValueAtTime(.5,t+dur); cg.gain.exponentialRampToValueAtTime(.001,t+dur+.5);
+    c.connect(cf); cf.connect(cg); cg.connect(sbGain); c.start(t+dur); c.stop(t+dur+.5); }},
+  {name:'Γέλιο πλήθους', emo:'😂', fn:(t)=>{ // εντύπωση γέλιου πλήθους: πολλά «χα-χα» με φόρμαντ
+    for(let voice=0;voice<5;voice++){ const base=180+voice*40+Math.random()*30; const off=voice*0.08+Math.random()*0.1;
+      for(let i=0;i<5;i++){ const dt=t+off+i*0.16; const o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();
+        o.type='sawtooth'; o.frequency.setValueAtTime(base*(1+0.15*Math.sin(i)),dt); o.frequency.linearRampToValueAtTime(base*0.85,dt+.1);
+        f.type='bandpass'; f.frequency.value=900+voice*150; f.Q.value=4;
+        g.gain.setValueAtTime(0,dt); g.gain.linearRampToValueAtTime(.09,dt+.02); g.gain.exponentialRampToValueAtTime(.001,dt+.12);
+        o.connect(f); f.connect(g); g.connect(sbGain); o.start(dt); o.stop(dt+.14); } } }},
+  {name:'Μπράβο!', emo:'👏', fn:(t)=>{ // χειροκρότημα + φωνή «Μπράβο!» (TTS)
+    const s=noise(1.8),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='bandpass'; f.frequency.value=2000; f.Q.value=.6;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.5,t+.25); g.gain.setValueAtTime(.45,t+1.1); g.gain.linearRampToValueAtTime(0,t+1.8);
+    s.connect(f); f.connect(g); g.connect(sbGain); s.start(t); s.stop(t+1.8);
+    try{ if(window.speechSynthesis){ const u=new SpeechSynthesisUtterance('Μπράβο!'); u.lang='el-GR'; u.rate=1; u.pitch=1.1; u.volume=1; setTimeout(()=>speechSynthesis.speak(u), 120); } }catch(e){} }},
 ];
 let sbCustom=[]; // {name, buffer}
 function playSB(entry){
@@ -1925,6 +1969,15 @@ function renderSoundboard(){
   });
 }
 async function saveSoundboard(){ try{ await idbSet('sb', sbCustom.map(c=>({name:c.name, blob:c.blob}))); }catch(e){} }
+let autoPartyTimer=null;
+const PARTY_FX=['Πανηγυρισμός','Βεγγαλικά','Σφυρίχτρα','Καραμούζα','Φανφάρα','Καμπάνες','Applause','Correct','Μπράβο!','Coin'];
+document.getElementById('autoPartyBtn').onclick=function(){
+  if(autoPartyTimer){ clearTimeout(autoPartyTimer); autoPartyTimer=null; this.textContent='🎊 Auto γιορτή'; this.classList.remove('active'); toast('Auto γιορτή OFF'); return; }
+  this.textContent='⏹ Στοπ γιορτής'; this.classList.add('active'); toast('🎊 Auto γιορτή ON');
+  const fire=()=>{ const nm=PARTY_FX[Math.floor(Math.random()*PARTY_FX.length)]; const e=SB.find(x=>x.name===nm); if(e){ if(AC.state==='suspended')AC.resume(); e.fn(AC.currentTime+0.01); } };
+  const loop=()=>{ fire(); const ms=(typeof bandPlaying!=='undefined'&&bandPlaying)?(60/bandBpm)*1000:1200; autoPartyTimer=setTimeout(loop, ms); };
+  loop();
+};
 document.getElementById('addSoundBtn').onclick=()=>document.getElementById('soundFile').click();
 document.getElementById('soundFile').onchange=async e=>{
   for(const f of e.target.files){
@@ -3279,10 +3332,10 @@ function tick(){
       if(d.playing){
         tt.classList.add('playing');
         vinyl.style.transform=`rotate(${(pos*d.rate*198)%360}deg)`; // ~33⅓ rpm feel
-        arm.style.transform=`rotate(${-16+prog*14}deg)`; // track inward with progress
+        if(!armDrag[id]) arm.style.transform=`rotate(${-16+prog*14}deg)`; // track inward (όχι όσο σέρνεις)
       } else {
         tt.classList.remove('playing');
-        arm.style.transform=''; // lift back to rest (CSS)
+        if(!armDrag[id]) arm.style.transform=''; // lift back to rest (CSS)
       }
     }
   });
