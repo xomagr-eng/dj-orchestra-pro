@@ -1863,6 +1863,42 @@ const SB=[
   {name:'Cash', emo:'💰', fn:(t)=>{ osc('square',1568,t,.1,.25); osc('square',2093,t+.05,.5,.25); const s=noise(.15),g=AC.createGain();
     g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.001,t+.15); const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=4000;
     s.connect(f); f.connect(g); g.connect(sbGain); s.start(t); s.stop(t+.15); }},
+  {name:'Πανηγυρισμός', emo:'🎉', fn:(t)=>{ // πλήθος που ζητωκραυγάζει: φαρδύ noise swell + «φωνές»
+    const s=noise(3),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='bandpass'; f.frequency.value=900; f.Q.value=.5;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.6,t+.4); g.gain.setValueAtTime(.55,t+2.2); g.gain.linearRampToValueAtTime(0,t+3);
+    s.connect(f); f.connect(g); g.connect(sbGain);
+    const lfo=AC.createOscillator(),lg=AC.createGain(); lfo.frequency.value=5; lg.gain.value=300; lfo.connect(lg); lg.connect(f.frequency); lfo.start(t); lfo.stop(t+3);
+    // «γιούχου» φωνές
+    [520,660,780].forEach((fr,i)=>{ const o=AC.createOscillator(),og=AC.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(fr*.9,t+.2+i*.15); o.frequency.linearRampToValueAtTime(fr*1.15,t+.6+i*.15); o.frequency.linearRampToValueAtTime(fr,t+1.1+i*.15);
+      const of=AC.createBiquadFilter(); of.type='lowpass'; of.frequency.value=1400; og.gain.setValueAtTime(0,t+.2+i*.15); og.gain.linearRampToValueAtTime(.12,t+.4+i*.15); og.gain.exponentialRampToValueAtTime(.001,t+1.3+i*.15);
+      o.connect(of); of.connect(og); og.connect(sbGain); o.start(t+.2+i*.15); o.stop(t+1.4+i*.15); });
+    s.start(t); s.stop(t+3); }},
+  {name:'Βεγγαλικά', emo:'🎆', fn:(t)=>{ // σφύριγμα ανόδου → μπαμ → κρότοι
+    const w=AC.createOscillator(),wg=AC.createGain(); w.type='sine'; w.frequency.setValueAtTime(500,t); w.frequency.exponentialRampToValueAtTime(1800,t+.5);
+    wg.gain.setValueAtTime(.25,t); wg.gain.exponentialRampToValueAtTime(.001,t+.55); w.connect(wg); wg.connect(sbGain); w.start(t); w.stop(t+.55);
+    const bo=AC.createOscillator(),bg=AC.createGain(); bo.frequency.setValueAtTime(140,t+.55); bo.frequency.exponentialRampToValueAtTime(50,t+.9);
+    bg.gain.setValueAtTime(.9,t+.55); bg.gain.exponentialRampToValueAtTime(.001,t+1.1); bo.connect(bg); bg.connect(sbGain); bg.connect(sbReverb); bo.start(t+.55); bo.stop(t+1.15);
+    for(let i=0;i<14;i++){ const dt=t+.6+Math.random()*1.1; const s=noise(.05),cf=AC.createBiquadFilter(),cg=AC.createGain(); cf.type='highpass'; cf.frequency.value=4000+Math.random()*3000;
+      cg.gain.setValueAtTime(.3,dt); cg.gain.exponentialRampToValueAtTime(.001,dt+.06); s.connect(cf); cf.connect(cg); cg.connect(sbGain); s.start(dt); s.stop(dt+.07); } }},
+  {name:'Σφυρίχτρα', emo:'📣', fn:(t)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.type='triangle'; o.frequency.setValueAtTime(2100,t);
+    const lfo=AC.createOscillator(),lg=AC.createGain(); lfo.frequency.value=18; lg.gain.value=120; lfo.connect(lg); lg.connect(o.frequency); lfo.start(t); lfo.stop(t+.6);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.3,t+.03); g.gain.setValueAtTime(.3,t+.45); g.gain.exponentialRampToValueAtTime(.001,t+.6);
+    o.connect(g); g.connect(sbGain); o.start(t); o.stop(t+.6); }},
+  {name:'Καραμούζα', emo:'🎊', fn:(t)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(400,t); o.frequency.linearRampToValueAtTime(250,t+.5);
+    const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1600;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.35,t+.02); g.gain.setValueAtTime(.3,t+.45); g.gain.exponentialRampToValueAtTime(.001,t+.55);
+    o.connect(f); f.connect(g); g.connect(sbGain); o.start(t); o.stop(t+.55); }},
+  {name:'Φανφάρα', emo:'🎺', fn:(t)=>{ // θριαμβευτικό ανέβασμα (γενικό αρπέτζιο)
+    [523,659,784,1046].forEach((fr,i)=>{ const o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter(); o.type='sawtooth'; o.frequency.value=fr; f.type='lowpass'; f.frequency.value=3000;
+      const st=t+i*.12; g.gain.setValueAtTime(0,st); g.gain.linearRampToValueAtTime(.28,st+.02); g.gain.exponentialRampToValueAtTime(.001,st+ (i===3?.9:.35));
+      o.connect(f); f.connect(g); g.connect(sbGain); o.start(st); o.stop(st+(i===3?1:.4)); }); }},
+  {name:'Καμπάνες', emo:'🔔', fn:(t)=>{ [880,1174,1318].forEach((fr,i)=>{ const c=AC.createOscillator(),m=AC.createOscillator(),mg=AC.createGain(),g=AC.createGain();
+    c.frequency.value=fr; m.frequency.value=fr*1.4; mg.gain.value=fr*0.7; m.connect(mg); mg.connect(c.frequency);
+    const st=t+i*.18; g.gain.setValueAtTime(.3,st); g.gain.exponentialRampToValueAtTime(.001,st+1.2); c.connect(g); g.connect(sbGain); c.start(st); m.start(st); c.stop(st+1.2); m.stop(st+1.2); }); }},
+  {name:'Γκονγκ', emo:'🥁', fn:(t)=>{ const s=noise(2.2),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='bandpass'; f.frequency.value=200; f.Q.value=2;
+    g.gain.setValueAtTime(.7,t); g.gain.exponentialRampToValueAtTime(.001,t+2); s.connect(f); f.connect(g); g.connect(sbGain); g.connect(sbReverb);
+    const o=AC.createOscillator(),og=AC.createGain(); o.type='sine'; o.frequency.value=110; og.gain.setValueAtTime(.4,t); og.gain.exponentialRampToValueAtTime(.001,t+1.8); o.connect(og); og.connect(sbGain); o.start(t); o.stop(t+1.8);
+    s.start(t); s.stop(t+2.2); }},
 ];
 let sbCustom=[]; // {name, buffer}
 function playSB(entry){
