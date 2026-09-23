@@ -1931,13 +1931,13 @@ const SB=[
     // sting στο τέλος
     const c=noise(.6),cf=AC.createBiquadFilter(),cg=AC.createGain(); cf.type='highpass'; cf.frequency.value=5000; cg.gain.setValueAtTime(.5,t+dur); cg.gain.exponentialRampToValueAtTime(.001,t+dur+.5);
     c.connect(cf); cf.connect(cg); cg.connect(sbGain); c.start(t+dur); c.stop(t+dur+.5); }},
-  {name:'Γέλιο πλήθους', emo:'😂', fn:(t)=>{ // εντύπωση γέλιου πλήθους: πολλά «χα-χα» με φόρμαντ
-    for(let voice=0;voice<5;voice++){ const base=180+voice*40+Math.random()*30; const off=voice*0.08+Math.random()*0.1;
-      for(let i=0;i<5;i++){ const dt=t+off+i*0.16; const o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();
-        o.type='sawtooth'; o.frequency.setValueAtTime(base*(1+0.15*Math.sin(i)),dt); o.frequency.linearRampToValueAtTime(base*0.85,dt+.1);
-        f.type='bandpass'; f.frequency.value=900+voice*150; f.Q.value=4;
-        g.gain.setValueAtTime(0,dt); g.gain.linearRampToValueAtTime(.09,dt+.02); g.gain.exponentialRampToValueAtTime(.001,dt+.12);
-        o.connect(f); f.connect(g); g.connect(sbGain); o.start(dt); o.stop(dt+.14); } } }},
+  {name:'Γέλιο πλήθους', emo:'😂', fn:(t)=>{ // γέλιο πλήθους: πολλές φωνές με «χα-χα» (lowpass, δυνατό)
+    for(let voice=0;voice<4;voice++){ const base=190+voice*55+Math.random()*20; const off=voice*0.05+Math.random()*0.08;
+      for(let i=0;i<6;i++){ const dt=t+off+i*0.17; const o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();
+        o.type='sawtooth'; o.frequency.setValueAtTime(base*1.18,dt); o.frequency.linearRampToValueAtTime(base*0.9,dt+.13);
+        f.type='lowpass'; f.frequency.value=1600; f.Q.value=1;
+        g.gain.setValueAtTime(0,dt); g.gain.linearRampToValueAtTime(.26,dt+.02); g.gain.exponentialRampToValueAtTime(.001,dt+.16);
+        o.connect(f); f.connect(g); g.connect(sbGain); o.start(dt); o.stop(dt+.18); } } }},
   {name:'Μπράβο!', emo:'👏', fn:(t)=>{ // χειροκρότημα + φωνή «Μπράβο!» (TTS)
     const s=noise(1.8),f=AC.createBiquadFilter(),g=AC.createGain(); f.type='bandpass'; f.frequency.value=2000; f.Q.value=.6;
     g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.5,t+.25); g.gain.setValueAtTime(.45,t+1.1); g.gain.linearRampToValueAtTime(0,t+1.8);
