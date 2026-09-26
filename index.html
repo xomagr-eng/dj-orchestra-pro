@@ -496,6 +496,50 @@
   #welcomeOv .wgo{display:block;width:100%;padding:13px;font-size:15px;font-weight:800;
     background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--glow)}
   input[type=file]{display:none}
+
+  /* ======================================================================
+     ΟΡΙΖΟΝΤΙΑ ΠΡΟΒΟΛΗ (landscape) — γύρνα κινητό/tablet πλάγια για πλατιά κονσόλα
+     Εκμεταλλευόμαστε το πλάτος: decks δίπλα-δίπλα (μείκτης από κάτω), και σε
+     φαρδιά ταμπλέτα κλασική διάταξη Deck A | Μείκτης | Deck B.
+     ====================================================================== */
+  /* Οποιαδήποτε οριζόντια συσκευή με αρκετό πλάτος: 2 decks δίπλα, μείκτης κάτω */
+  @media (orientation:landscape) and (min-width:700px){
+    .rig{grid-template-columns:1fr 1fr; gap:12px}
+    .mixer{order:3; grid-column:1 / -1}
+    /* Κράτα τα grids πλήρη στο φαρδύ πλάτος (αναίρεση των portrait breakpoints) */
+    .band-controls{grid-template-columns:repeat(4,1fr)}
+    .band-layers{grid-template-columns:repeat(4,1fr)}
+    .sampler-grid{grid-template-columns:repeat(8,1fr)}
+    .drum-grid{grid-template-columns:repeat(4,1fr)}
+    .eq-cols{grid-template-columns:1fr 1fr}
+  }
+  /* Φαρδιά οριζόντια (ταμπλέτα/οθόνη): κλασική κονσόλα Deck A | Μείκτης | Deck B */
+  @media (orientation:landscape) and (min-width:980px){
+    .rig{grid-template-columns:1fr minmax(220px,260px) 1fr; gap:14px}
+    .mixer{order:0; grid-column:auto}
+  }
+  /* Χαμηλό ύψος (τηλέφωνο/μικρή ταμπλέτα στο πλάι): σμίκρυνε το «χρώμιο» για χώρο */
+  @media (orientation:landscape) and (max-height:560px){
+    body{padding:8px 12px}
+    header{margin-bottom:8px}
+    .brand small{display:none}
+    .brand h1{font-size:18px}
+    .logo{width:38px;height:38px;font-size:16px;border-radius:10px}
+    .btn{padding:7px 11px;font-size:12px}
+    .tabbar{margin-bottom:10px}
+    .tab{padding:9px 15px}
+    .drumkit{max-width:440px}
+    .clar-svg{max-width:600px}
+  }
+  /* Διακριτική υπενθύμιση σε κατακόρυφο τηλέφωνο: «γύρνα το πλάγια» (fixed pill) */
+  #rotateHint{display:none}
+  @media (orientation:portrait) and (max-width:560px){
+    #rotateHint{display:flex;align-items:center;gap:8px;justify-content:center;
+      position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:90;
+      background:rgba(20,22,28,.96);border:1px solid var(--accent);border-radius:22px;
+      padding:9px 16px;font-size:12.5px;color:var(--accent2);font-weight:600;
+      box-shadow:var(--glow);white-space:nowrap;max-width:calc(100vw - 24px)}
+  }
 </style>
 </head>
 <body>
@@ -518,6 +562,8 @@
     <span id="harmony" class="harmony-badge"></span>
   </div>
 </header>
+
+<div id="rotateHint">📱↻ Γύρνα τη συσκευή <b>οριζόντια</b> για πλατιά κονσόλα</div>
 
 <div class="appearance">
   <div class="app-grp"><span class="app-lbl">🎨 Θέμα</span>
