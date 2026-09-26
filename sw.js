@@ -1,6 +1,7 @@
 /* DJ PRO — service worker (offline cache) */
-const CACHE = 'djpro-v1';
-const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
+const CACHE = 'djpro-v2';
+const ASSETS = ['./', './index.html', './manifest.json', './icon.svg',
+  './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon.ico', './favicon-32.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
